@@ -35,7 +35,7 @@ class FilmControllerTest {
     private static Film film1;
     private static Film film2;
     private static ObjectMapper mapper;
-    private final static String FILMS_PATH = "/films";
+    private static final String FILMS_PATH = "/films";
 
     @BeforeAll
     public static void beforeAll() {

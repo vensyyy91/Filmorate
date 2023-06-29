@@ -32,7 +32,7 @@ class UserControllerTest {
     private static User user1;
     private static User user2;
     private static ObjectMapper mapper;
-    private final static String USERS_PATH = "/users";
+    private static final String USERS_PATH = "/users";
 
     @BeforeAll
     public static void beforeAll() {
