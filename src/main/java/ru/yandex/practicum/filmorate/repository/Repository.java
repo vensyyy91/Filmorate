@@ -5,6 +5,8 @@ import java.util.Map;
 
 public interface Repository<T> {
     Map<Integer, T> getMap();
+
     List<T> getAll();
+
     void save(int id, T t);
 }
