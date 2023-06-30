@@ -29,7 +29,8 @@ public class ExceptionControllerHandler {
         }
         String message = joiner.toString();
         Response response = new Response(message);
-        log.error(message, ex);
+        log.error("Получен запрос с некорректными данными.");
+        log.error(message);
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
@@ -37,7 +38,8 @@ public class ExceptionControllerHandler {
     @ExceptionHandler
     public ResponseEntity<Response> handleValidationException(ValidationException ex) {
         Response response = new Response(ex.getMessage());
-        log.error(ex.getMessage(), ex);
+        log.error("Получен запрос с некорректными данными.");
+        log.error(ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 }

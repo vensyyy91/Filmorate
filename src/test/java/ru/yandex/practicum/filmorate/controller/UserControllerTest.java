@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.repository.Repository;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class UserControllerTest {
     @Autowired
     private MockMvc mvc;
@@ -43,16 +45,6 @@ class UserControllerTest {
         mapper = new ObjectMapper()
                 .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
                 .findAndRegisterModules();
-    }
-
-    @BeforeEach
-    public void beforeEach() {
-        service.setId(0);
-    }
-
-    @AfterEach
-    public void afterEach() {
-        repository.getMap().clear();
     }
 
     @Test

@@ -8,9 +8,12 @@
 *.tar.gz
 *.rar
 hs_err_pid*
+mvnw
+mvnw.cmd
+log/
 out/
 target/
-!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
