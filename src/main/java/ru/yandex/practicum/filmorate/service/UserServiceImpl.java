@@ -1,27 +1,38 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.repository.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
-    @Autowired
     private final Repository<User> repository;
     private int id;
+
+    @Autowired
+    public UserServiceImpl(Repository<User> repository) {
+        this.repository = repository;
+    }
 
     @Override
     public List<User> getAllUsers() {
         log.info("Возвращен список пользователей: " + repository.getAll().toString());
         return repository.getAll();
+    }
+
+    @Override
+    public User getUser(int id) {
+        log.info("Возвращен пользователь: " + repository.get(id));
+        return repository.get(id);
     }
 
     @Override
@@ -40,7 +51,7 @@ public class UserServiceImpl implements UserService {
     public User updateUser(User user) {
         int id = user.getId();
         if (repository.getAll().stream().noneMatch(u -> u.getId() == id)) {
-            throw new ValidationException("Пользователя с таким id не существует.");
+            throw new UserNotFoundException(String.format("Пользователя с id=%d не существует.", id));
         }
         if (user.getName() == null || user.getName().isEmpty()) {
             user.setName(user.getLogin());
@@ -48,6 +59,51 @@ public class UserServiceImpl implements UserService {
         repository.save(id, user);
         log.info(String.format("Обновлен пользователь: id=%d, email=%s", id, user.getEmail()));
         return user;
+    }
+
+    @Override
+    public void addFriend(int userId, int friendId) {
+        User user = repository.get(userId);
+        User friend = repository.get(friendId);
+        user.getFriends().add(friendId);
+        friend.getFriends().add(userId);
+        log.info(String.format("Пользователи с id=%d и id=%d добавились в друзья.", userId, friendId));
+    }
+
+    @Override
+    public void deleteFriend(int userId, int friendId) {
+        User user = repository.get(userId);
+        User friend = repository.get(friendId);
+        user.getFriends().remove(friendId);
+        friend.getFriends().remove(userId);
+        log.info(String.format("Пользователи с id=%d и id=%d удалились из друзей.", userId, friendId));
+    }
+
+    @Override
+    public List<User> getAllFriends(int userId) {
+        List<User> userFriends = new ArrayList<>();
+        Set<Integer> userFriendsId = repository.get(userId).getFriends();
+        if (!userFriendsId.isEmpty()) {
+            userFriends = userFriendsId.stream().map(repository::get).collect(Collectors.toList());
+        }
+        log.info(String.format("Возвращен список всех друзей пользователя с id=%d: %s", userId, userFriends));
+        return userFriends;
+    }
+
+    @Override
+    public List<User> getCommonFriends(int userId, int otherId) {
+        List<User> commonFriends = new ArrayList<>();
+        Set<Integer> userFriendsId = repository.get(userId).getFriends();
+        Set<Integer> otherFriendsId = repository.get(otherId).getFriends();
+        if (!userFriendsId.isEmpty() && !otherFriendsId.isEmpty()) {
+            commonFriends = userFriendsId.stream()
+                    .filter(otherFriendsId::contains)
+                    .map(repository::get)
+                    .collect(Collectors.toList());
+        }
+        log.info(String.format("Возвращен список всех общих друзей у пользователей с id=%d и id=%d: %s",
+                userId, otherId, commonFriends));
+        return commonFriends;
     }
 
     private int generateID() {

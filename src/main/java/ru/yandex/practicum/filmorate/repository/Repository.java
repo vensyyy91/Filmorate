@@ -8,5 +8,7 @@ public interface Repository<T> {
 
     List<T> getAll();
 
+    T get(int id);
+
     void save(int id, T t);
 }

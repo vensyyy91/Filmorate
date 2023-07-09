@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.repository;
 
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.ArrayList;
@@ -20,6 +21,14 @@ public class InMemoryFilmRepository implements Repository<Film> {
     @Override
     public List<Film> getAll() {
         return new ArrayList<>(films.values());
+    }
+
+    @Override
+    public Film get(int id) {
+        if (films.get(id) == null) {
+            throw new FilmNotFoundException(String.format("Фильм с id=%d не найден.", id));
+        }
+        return films.get(id);
     }
 
     @Override

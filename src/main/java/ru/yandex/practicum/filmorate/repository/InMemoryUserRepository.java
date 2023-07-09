@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.repository;
 
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.ArrayList;
@@ -20,6 +21,14 @@ public class InMemoryUserRepository implements Repository<User> {
     @Override
     public List<User> getAll() {
         return new ArrayList<>(users.values());
+    }
+
+    @Override
+    public User get(int id) {
+        if (users.get(id) == null) {
+            throw new UserNotFoundException(String.format("Пользователь с id=%d не найден.", id));
+        }
+        return users.get(id);
     }
 
     @Override
