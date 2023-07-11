@@ -13,7 +13,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.repository.Repository;
+import ru.yandex.practicum.filmorate.repository.FilmStorage;
+import ru.yandex.practicum.filmorate.repository.UserStorage;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -34,9 +35,9 @@ class FilmControllerTest {
     @Autowired
     private MockMvc mvc;
     @Autowired
-    private Repository<Film> filmRepository;
+    private FilmStorage filmStorage;
     @Autowired
-    private Repository<User> userRepository;
+    private UserStorage userStorage;
     @Autowired
     private FilmService filmService;
     @Autowired
@@ -56,9 +57,9 @@ class FilmControllerTest {
     @BeforeEach
     public void beforeEach() {
         film1 = new Film(1,"film1", "Blockbuster",
-                LocalDate.of(2005, 7, 13), 120, new HashSet<>());
+                LocalDate.of(2005, 7, 13), 120);
         film2 = new Film(2,"film2", "Drama",
-                LocalDate.of(2010, 10, 21), 150, new HashSet<>());
+                LocalDate.of(2010, 10, 21), 150);
         filmService.addFilm(film1);
         filmService.addFilm(film2);
         User user1 = new User(1, "user1@yandex.ru", "user1", "Petr",
@@ -79,7 +80,7 @@ class FilmControllerTest {
 
     @Test
     public void getAllFilmsWhenEmpty() throws Exception {
-        filmRepository.getMap().clear();
+        filmStorage.getMap().clear();
         mvc.perform(get(FILMS_PATH).contentType(MediaType.APPLICATION_JSON))
                 .andExpectAll(status().isOk(),
                         content().contentType(MediaType.APPLICATION_JSON),
@@ -105,7 +106,7 @@ class FilmControllerTest {
     @Test
     public void addFilmWithValidRequest() throws Exception {
         Film film3 = new Film(3,"film3", "Best Film Ever",
-                LocalDate.of(1998, 3, 15), 180, new HashSet<>());
+                LocalDate.of(1998, 3, 15), 180);
 
         mvc.perform(post(FILMS_PATH).content(mapper.writeValueAsString(film3)).contentType(MediaType.APPLICATION_JSON))
                 .andExpectAll(status().isOk(),
@@ -171,7 +172,7 @@ class FilmControllerTest {
     @Test
     public void updateFilmWithExistingId() throws Exception {
         Film updatedFilm = new Film(1,"film1", "Super blockbuster",
-                LocalDate.of(2004, 7, 13), 130, new HashSet<>());
+                LocalDate.of(2004, 7, 13), 130);
 
         mvc.perform(put(FILMS_PATH).content(mapper.writeValueAsString(updatedFilm)).contentType(MediaType.APPLICATION_JSON))
                 .andExpectAll(status().isOk(),
@@ -186,7 +187,7 @@ class FilmControllerTest {
     @Test
     public void updateFilmWithNonExistingId() throws Exception {
         Film updatedFilm = new Film(999,"film1", "Super blockbuster",
-                LocalDate.of(2004, 7, 13), 130, new HashSet<>());
+                LocalDate.of(2004, 7, 13), 130);
 
         mvc.perform(put(FILMS_PATH).content(mapper.writeValueAsString(updatedFilm)).contentType(MediaType.APPLICATION_JSON))
                             .andExpectAll(status().isNotFound(),

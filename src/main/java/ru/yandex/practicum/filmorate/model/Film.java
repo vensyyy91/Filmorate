@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.annotation.MinDate;
@@ -15,7 +15,6 @@ import java.util.Set;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @NotNull
 public class Film {
     private int id;
@@ -27,9 +26,20 @@ public class Film {
     private LocalDate releaseDate;
     @Positive
     private int duration;
-    Set<Integer> likes = new HashSet<>();
+    @JsonIgnore
+    private Set<Integer> likes = new HashSet<>();
+    @JsonIgnore
+    private int likesCount;
 
     public Film(String name, String description, LocalDate releaseDate, int duration) {
+        this.name = name;
+        this.description = description;
+        this.releaseDate = releaseDate;
+        this.duration = duration;
+    }
+
+    public Film(int id, String name, String description, LocalDate releaseDate, int duration) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.releaseDate = releaseDate;

@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.repository.Repository;
+import ru.yandex.practicum.filmorate.repository.UserStorage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,24 +15,24 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private final Repository<User> repository;
+    private final UserStorage storage;
     private int id;
 
     @Autowired
-    public UserServiceImpl(Repository<User> repository) {
-        this.repository = repository;
+    public UserServiceImpl(UserStorage storage) {
+        this.storage = storage;
     }
 
     @Override
     public List<User> getAllUsers() {
-        log.info("Возвращен список пользователей: " + repository.getAll().toString());
-        return repository.getAll();
+        log.info("Возвращен список пользователей: " + storage.getAll().toString());
+        return storage.getAll();
     }
 
     @Override
     public User getUser(int id) {
-        log.info("Возвращен пользователь: " + repository.get(id));
-        return repository.get(id);
+        log.info("Возвращен пользователь: " + storage.get(id));
+        return storage.get(id);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
         if (user.getName() == null || user.getName().isEmpty()) {
             user.setName(user.getLogin());
         }
-        repository.save(id, user);
+        storage.save(id, user);
         log.info(String.format("Добавлен пользователь: id=%d, email=%s", id, user.getEmail()));
         return user;
     }
@@ -50,21 +50,21 @@ public class UserServiceImpl implements UserService {
     @Override
     public User updateUser(User user) {
         int id = user.getId();
-        if (repository.getAll().stream().noneMatch(u -> u.getId() == id)) {
+        if (storage.getAll().stream().noneMatch(u -> u.getId() == id)) {
             throw new UserNotFoundException(String.format("Пользователя с id=%d не существует.", id));
         }
         if (user.getName() == null || user.getName().isEmpty()) {
             user.setName(user.getLogin());
         }
-        repository.save(id, user);
+        storage.save(id, user);
         log.info(String.format("Обновлен пользователь: id=%d, email=%s", id, user.getEmail()));
         return user;
     }
 
     @Override
     public void addFriend(int userId, int friendId) {
-        User user = repository.get(userId);
-        User friend = repository.get(friendId);
+        User user = storage.get(userId);
+        User friend = storage.get(friendId);
         user.getFriends().add(friendId);
         friend.getFriends().add(userId);
         log.info(String.format("Пользователи с id=%d и id=%d добавились в друзья.", userId, friendId));
@@ -72,8 +72,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteFriend(int userId, int friendId) {
-        User user = repository.get(userId);
-        User friend = repository.get(friendId);
+        User user = storage.get(userId);
+        User friend = storage.get(friendId);
         user.getFriends().remove(friendId);
         friend.getFriends().remove(userId);
         log.info(String.format("Пользователи с id=%d и id=%d удалились из друзей.", userId, friendId));
@@ -82,9 +82,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getAllFriends(int userId) {
         List<User> userFriends = new ArrayList<>();
-        Set<Integer> userFriendsId = repository.get(userId).getFriends();
+        Set<Integer> userFriendsId = storage.get(userId).getFriends();
         if (!userFriendsId.isEmpty()) {
-            userFriends = userFriendsId.stream().map(repository::get).collect(Collectors.toList());
+            userFriends = userFriendsId.stream().map(storage::get).collect(Collectors.toList());
         }
         log.info(String.format("Возвращен список всех друзей пользователя с id=%d: %s", userId, userFriends));
         return userFriends;
@@ -93,12 +93,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getCommonFriends(int userId, int otherId) {
         List<User> commonFriends = new ArrayList<>();
-        Set<Integer> userFriendsId = repository.get(userId).getFriends();
-        Set<Integer> otherFriendsId = repository.get(otherId).getFriends();
+        Set<Integer> userFriendsId = storage.get(userId).getFriends();
+        Set<Integer> otherFriendsId = storage.get(otherId).getFriends();
         if (!userFriendsId.isEmpty() && !otherFriendsId.isEmpty()) {
             commonFriends = userFriendsId.stream()
                     .filter(otherFriendsId::contains)
-                    .map(repository::get)
+                    .map(storage::get)
                     .collect(Collectors.toList());
         }
         log.info(String.format("Возвращен список всех общих друзей у пользователей с id=%d и id=%d: %s",

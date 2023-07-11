@@ -12,7 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.repository.Repository;
+import ru.yandex.practicum.filmorate.repository.UserStorage;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.time.LocalDate;
@@ -32,7 +32,7 @@ class UserControllerTest {
     @Autowired
     private MockMvc mvc;
     @Autowired
-    private Repository<User> repository;
+    private UserStorage storage;
     @Autowired
     private UserService service;
     private User user1;
@@ -67,7 +67,7 @@ class UserControllerTest {
 
     @Test
     public void getAllUsersWhenEmpty() throws Exception {
-        repository.getMap().clear();
+        storage.getMap().clear();
 
         mvc.perform(get(USERS_PATH).contentType(MediaType.APPLICATION_JSON))
                 .andExpectAll(status().isOk(),
