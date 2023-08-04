@@ -14,17 +14,12 @@ public class InMemoryUserStorage implements UserStorage {
     private final Map<Integer, User> users = new HashMap<>();
 
     @Override
-    public Map<Integer, User> getMap() {
-        return users;
-    }
-
-    @Override
     public List<User> getAll() {
         return new ArrayList<>(users.values());
     }
 
     @Override
-    public User get(int id) {
+    public User getById(int id) {
         if (users.get(id) == null) {
             throw new UserNotFoundException(String.format("Пользователь с id=%d не найден.", id));
         }
@@ -32,7 +27,8 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public void save(int id, User user) {
-        users.put(id, user);
+    public User save(User user) {
+        users.put(user.getId(), user);
+        return user;
     }
 }

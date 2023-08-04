@@ -2,14 +2,18 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.dao.GenreDao;
+import ru.yandex.practicum.filmorate.dao.LikesDao;
+import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.repository.FilmStorage;
 import ru.yandex.practicum.filmorate.repository.UserStorage;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,82 +22,112 @@ import java.util.stream.Collectors;
 public class FilmServiceImpl implements FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private int id;
+    private final LikesDao likesDao;
+    private final GenreDao genreDao;
+    private final MpaDao mpaDao;
 
     @Autowired
-    public FilmServiceImpl(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmServiceImpl(@Qualifier("FilmDbStorage") FilmStorage filmStorage,
+                           @Qualifier("UserDbStorage") UserStorage userStorage,
+                           LikesDao likesDao, GenreDao genreDao, MpaDao mpaDao) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.likesDao = likesDao;
+        this.genreDao = genreDao;
+        this.mpaDao = mpaDao;
     }
 
     @Override
     public List<Film> getAllFilms() {
-        log.info("Возвращен список фильмов: " + filmStorage.getAll().toString());
-        return filmStorage.getAll();
+        List<Film> films = filmStorage.getAll();
+        log.info("Возвращен список фильмов: " + films.toString());
+
+        return films;
     }
 
     @Override
     public Film getFilm(int id) {
-        log.info("Возвращен фильм: " + filmStorage.get(id));
-        return filmStorage.get(id);
-    }
+        Film film = filmStorage.getById(id);
+        log.info("Возвращен фильм: " + film);
 
-    @Override
-    public Film addFilm(Film film) {
-        int id = generateID();
-        film.setId(id);
-        filmStorage.save(id, film);
-        log.info(String.format("Добавлен фильм: id=%d, name=%s", id, film.getName()));
         return film;
     }
 
     @Override
+    public Film addFilm(Film film) {
+        Film newFilm = filmStorage.save(film);
+        log.info(String.format("Добавлен фильм: id=%d, name=%s", newFilm.getId(), newFilm.getName()));
+
+        return newFilm;
+    }
+
+    @Override
     public Film updateFilm(Film film) {
-        int id = film.getId();
-        if (filmStorage.getAll().stream().noneMatch(f -> f.getId() == id)) {
-            throw new FilmNotFoundException(String.format("Фильма с id=%d не существует.", id));
-        }
-        filmStorage.save(id, film);
-        log.info(String.format("Обновлен фильм: id=%d, name=%s", id, film.getName()));
+        filmStorage.getById(film.getId()); // проверка наличия фильма
+        filmStorage.save(film);
+        log.info(String.format("Обновлен фильм: id=%d, name=%s", film.getId(), film.getName()));
+
         return film;
     }
 
     @Override
     public void like(int id, int userId) {
-        Film film = filmStorage.get(id);
-        userStorage.get(userId); // выбросит исключение, если пользователя с таким id не существует
-        film.getLikes().add(userId);
-        film.setLikesCount(film.getLikesCount() + 1);
+        filmStorage.getById(id); // проверка наличия фильма
+        userStorage.getById(userId); // проверка наличия пользователя
+        likesDao.save(id, userId);
         log.info(String.format("Поставлен лайк фильму с id=%d пользователем с id=%d", id, userId));
     }
 
     @Override
     public void deleteLike(int id, int userId) {
-        Film film = filmStorage.get(id);
-        userStorage.get(userId); // выбросит исключение, если пользователя с таким id не существует
-        if (!film.getLikes().contains(userId)) {
+        filmStorage.getById(id); // проверка наличия фильма
+        userStorage.getById(userId); // проверка наличия пользователя
+        if (!likesDao.getAllByFilmId(id).contains(userId)) {
             throw new UserNotFoundException(String.format("Пользователь с id=%d не ставил лайк фильму с id=%d.",
                     userId, id));
         }
-        film.getLikes().remove(userId);
-        film.setLikesCount(film.getLikesCount() - 1);
+        likesDao.delete(id, userId);
         log.info(String.format("Удален лайк фильму с id=%d пользователем с id=%d", id, userId));
     }
 
     @Override
     public List<Film> getTopLikes(int count) {
-        int size = Math.min(count, filmStorage.getAll().size());
-        List<Film> topLikes = filmStorage.getAll().stream()
-                .sorted(Comparator.comparing(Film::getLikesCount).reversed())
-                .limit(size)
-                .collect(Collectors.toList());
+        List<Film> topLikes = likesDao.getTop(count).stream().map(filmStorage::getById).collect(Collectors.toList());
         log.info(String.format("Возвращен список из %d фильмов с наибольшим количеством лайков: %s",
-                size, topLikes));
+                topLikes.size(), topLikes));
 
         return topLikes;
     }
 
-    private int generateID() {
-        return ++id;
+    @Override
+    public List<Genre> getAllGenres() {
+        List<Genre> genres = genreDao.getAll();
+        log.info("Возвращен список жанров: " + genres.toString());
+
+        return genres;
+    }
+
+    @Override
+    public Genre getGenreById(int id) {
+        Genre genre = genreDao.getById(id);
+        log.info("Возвращен жанр: " + genre);
+
+        return genre;
+    }
+
+    @Override
+    public List<Mpa> getAllMpa() {
+        List<Mpa> mpaList = mpaDao.getAll();
+        log.info("Возвращен список рейтингов: " + mpaList.toString());
+
+        return mpaList;
+    }
+
+    @Override
+    public Mpa getMpaById(int id) {
+        Mpa mpa = mpaDao.getById(id);
+        log.info("Возвращен рейтинг: " + mpa);
+
+        return mpa;
     }
 }
