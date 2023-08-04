@@ -38,17 +38,17 @@ class FilmorateApplicationTests {
 	private final MpaDao mpaDao;
 	private final LikesDao likesDao;
 	private final FriendsDao friendsDao;
-	private final static Genre GENRE_COMEDY = new Genre(1, "Комедия");
-	private final static Genre GENRE_DRAMA = new Genre(2, "Драма");
-	private final static Genre GENRE_CARTOON = new Genre(3, "Мультфильм");
-	private final static Genre GENRE_THRILLER = new Genre(4, "Триллер");
-	private final static Genre GENRE_DOCUMENTARY = new Genre(5, "Документальный");
-	private final static Genre GENRE_ACTION = new Genre(6, "Боевик");
-	private final static Mpa MPA_G = new Mpa(1, "G");
-	private final static Mpa MPA_PG = new Mpa(2, "PG");
-	private final static Mpa MPA_PG_13 = new Mpa(3, "PG-13");
-	private final static Mpa MPA_R = new Mpa(4, "R");
-	private final static Mpa MPA_NC_17 = new Mpa(5, "NC-17");
+	private static final Genre GENRE_COMEDY = new Genre(1, "Комедия");
+	private static final Genre GENRE_DRAMA = new Genre(2, "Драма");
+	private static final Genre GENRE_CARTOON = new Genre(3, "Мультфильм");
+	private static final Genre GENRE_THRILLER = new Genre(4, "Триллер");
+	private static final Genre GENRE_DOCUMENTARY = new Genre(5, "Документальный");
+	private static final Genre GENRE_ACTION = new Genre(6, "Боевик");
+	private static final Mpa MPA_G = new Mpa(1, "G");
+	private static final Mpa MPA_PG = new Mpa(2, "PG");
+	private static final Mpa MPA_PG_13 = new Mpa(3, "PG-13");
+	private static final Mpa MPA_R = new Mpa(4, "R");
+	private static final Mpa MPA_NC_17 = new Mpa(5, "NC-17");
 
 
 	@BeforeEach
