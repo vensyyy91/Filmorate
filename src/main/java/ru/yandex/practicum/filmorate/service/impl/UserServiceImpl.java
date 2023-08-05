@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.service;
+package ru.yandex.practicum.filmorate.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,10 +7,9 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dao.FriendsDao;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.repository.UserStorage;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -82,11 +81,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getAllFriends(int userId) {
         userStorage.getById(userId); // проверка наличия пользователя
-        List<User> userFriends = new ArrayList<>();
-        List<Integer> userFriendsId = friendsDao.getAllById(userId);
-        if (!userFriendsId.isEmpty()) {
-            userFriends.addAll(userFriendsId.stream().map(userStorage::getById).collect(Collectors.toList()));
-        }
+        List<User> userFriends = friendsDao.getAllById(userId);
         log.info(String.format("Возвращен список всех друзей пользователя с id=%d: %s", userId, userFriends));
         return userFriends;
     }
@@ -95,11 +90,7 @@ public class UserServiceImpl implements UserService {
     public List<User> getCommonFriends(int userId, int otherId) {
         userStorage.getById(userId); // проверка наличия пользователя
         userStorage.getById(otherId); // проверка наличия пользователя
-        List<User> commonFriends = new ArrayList<>();
-        List<Integer> commonFriendsId = friendsDao.getCommonById(userId, otherId);
-        if (!commonFriendsId.isEmpty()) {
-            commonFriends.addAll(commonFriendsId.stream().map(userStorage::getById).collect(Collectors.toList()));
-        }
+        List<User> commonFriends = friendsDao.getCommonById(userId, otherId);
         log.info(String.format("Возвращен список всех общих друзей у пользователей с id=%d и id=%d: %s",
                 userId, otherId, commonFriends));
         return commonFriends;

@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.dao.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -11,15 +11,13 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Component
+@RequiredArgsConstructor
 public class GenreDaoImpl implements GenreDao {
     private final JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    public GenreDaoImpl(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     public List<Genre> getAll() {
@@ -38,9 +36,9 @@ public class GenreDaoImpl implements GenreDao {
     }
 
     @Override
-    public List<Genre> getAllByFilmId(int filmId) {
+    public Set<Genre> getAllByFilmId(int filmId) {
         String sql = "SELECT * FROM genres WHERE genre_id IN (SELECT genre_id FROM film_genre WHERE film_id = ?)";
-        return jdbcTemplate.query(sql, this::makeGenre, filmId);
+        return new TreeSet<>(jdbcTemplate.query(sql, this::makeGenre, filmId));
     }
 
     private Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {

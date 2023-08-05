@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.repository;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
@@ -17,22 +17,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component("FilmDbStorage")
+@RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
     private final GenreDao genreDao;
     private final LikesDao likesDao;
     private final MpaDao mpaDao;
-
-    @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, GenreDao genreDao, LikesDao likesDao, MpaDao mpaDao) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.genreDao = genreDao;
-        this.likesDao = likesDao;
-        this.mpaDao = mpaDao;
-    }
 
     @Override
     public List<Film> getAll() {
@@ -52,9 +46,6 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film save(Film film) {
-        List<Genre> genresWithoutDuplicates = film.getGenres().stream().distinct().collect(Collectors.toList());
-        film.setGenres(genresWithoutDuplicates);
-        film.setMpa(mpaDao.getById(film.getMpa().getId()));
         if (film.getId() == 0) {
             SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
                     .withTableName("films")
@@ -92,6 +83,8 @@ public class FilmDbStorage implements FilmStorage {
             }
             film.setRate(likesDao.getAllByFilmId(film.getId()).size());
         }
+        film.setGenres(genreDao.getAllByFilmId(film.getId()));
+        film.setMpa(mpaDao.getById(film.getMpa().getId()));
 
         return film;
     }
@@ -103,7 +96,7 @@ public class FilmDbStorage implements FilmStorage {
         LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
         int duration = rs.getInt("duration");
         int rate = likesDao.getAllByFilmId(id).size();
-        List<Genre> genres = genreDao.getAllByFilmId(id);
+        Set<Genre> genres = genreDao.getAllByFilmId(id);
         Mpa mpa = mpaDao.getById(rs.getInt("mpa_id"));
 
         return new Film(id, name, description, releaseDate, duration, rate, genres, mpa);

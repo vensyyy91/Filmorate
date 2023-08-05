@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,10 +10,10 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Data
 @NoArgsConstructor
@@ -28,10 +29,11 @@ public class Film {
     @Positive
     private int duration;
     private int rate;
-    private List<Genre> genres = new ArrayList<>();
+    @JsonDeserialize(as = TreeSet.class)
+    private Set<Genre> genres = new TreeSet<>();
     private Mpa mpa;
 
-    public Film(String name, String description, LocalDate releaseDate, int duration, List<Genre> genres, Mpa mpa) {
+    public Film(String name, String description, LocalDate releaseDate, int duration, Set<Genre> genres, Mpa mpa) {
         this.name = name;
         this.description = description;
         this.releaseDate = releaseDate;
@@ -40,7 +42,7 @@ public class Film {
         this.mpa = mpa;
     }
 
-    public Film(int id, String name, String description, LocalDate releaseDate, int duration, List<Genre> genres, Mpa mpa) {
+    public Film(int id, String name, String description, LocalDate releaseDate, int duration, Set<Genre> genres, Mpa mpa) {
         this.id = id;
         this.name = name;
         this.description = description;
