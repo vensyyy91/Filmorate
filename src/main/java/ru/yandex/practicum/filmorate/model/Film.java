@@ -10,8 +10,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -50,16 +48,5 @@ public class Film {
         this.duration = duration;
         this.genres = genres;
         this.mpa = mpa;
-    }
-
-    public Map<String,Object> toMap() {
-        Map<String, Object> filmMap = new HashMap<>();
-        filmMap.put("name", name);
-        filmMap.put("description", description);
-        filmMap.put("release_date", releaseDate);
-        filmMap.put("duration", duration);
-        filmMap.put("mpa_id", mpa.getId());
-
-        return filmMap;
     }
 }

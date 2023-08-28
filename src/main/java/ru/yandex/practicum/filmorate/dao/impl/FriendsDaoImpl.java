@@ -5,10 +5,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.FriendsDao;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.util.Mapper;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.List;
 
 @Component
@@ -31,23 +29,13 @@ public class FriendsDaoImpl implements FriendsDao {
     @Override
     public List<User> getAllById(int userId) {
         String sql = "SELECT * FROM users AS u, friends AS f WHERE u.id = f.friend_id AND f.user_id = ?";
-        return jdbcTemplate.query(sql, this::makeUser, userId);
+        return jdbcTemplate.query(sql, Mapper::makeUser, userId);
     }
 
     @Override
     public List<User> getCommonById(int userId, int otherId) {
         String sql = "SELECT * FROM users AS u, friends AS f, friends AS o " +
                 "WHERE u.id = f.friend_id AND u.id = o.friend_id AND f.user_id = ? AND o.user_id = ?";
-        return jdbcTemplate.query(sql, this::makeUser, userId, otherId);
-    }
-
-    private User makeUser(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("id");
-        String email = rs.getString("email");
-        String login = rs.getString("login");
-        String name = rs.getString("name");
-        LocalDate birthday = rs.getDate("birthday").toLocalDate();
-
-        return new User(id, email, login, name, birthday);
+        return jdbcTemplate.query(sql, Mapper::makeUser, userId, otherId);
     }
 }

@@ -9,8 +9,6 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -31,15 +29,5 @@ public class User {
         this.login = login;
         this.name = name;
         this.birthday = birthday;
-    }
-
-    public Map<String,Object> toMap() {
-        Map<String, Object> userMap = new HashMap<>();
-        userMap.put("email", email);
-        userMap.put("login", login);
-        userMap.put("name", name);
-        userMap.put("birthday", birthday);
-
-        return userMap;
     }
 }

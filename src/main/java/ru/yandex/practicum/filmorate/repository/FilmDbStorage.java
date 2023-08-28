@@ -11,13 +11,9 @@ import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.util.Mapper;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component("FilmDbStorage")
@@ -31,14 +27,14 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getAll() {
         String sql = "SELECT * FROM films";
-        return jdbcTemplate.query(sql, this::makeFilm);
+        return jdbcTemplate.query(sql, (rs, rowNum) -> Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao));
     }
 
     @Override
     public Film getById(int id) {
         String sql = "SELECT * FROM films WHERE id = ?";
         try {
-            return jdbcTemplate.queryForObject(sql, this::makeFilm, id);
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao), id);
         } catch (EmptyResultDataAccessException ex) {
             throw new FilmNotFoundException(String.format("Фильм с id=%d не найден.", id));
         }
@@ -50,7 +46,7 @@ public class FilmDbStorage implements FilmStorage {
             SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
                     .withTableName("films")
                     .usingGeneratedKeyColumns("id");
-            int id = simpleJdbcInsert.executeAndReturnKey(film.toMap()).intValue();
+            int id = simpleJdbcInsert.executeAndReturnKey(Mapper.filmToMap(film)).intValue();
             film.setId(id);
             String sqlAddFilm = "INSERT INTO film_genre (film_id, genre_id) VALUES (" + film.getId() + ", ?)";
             for (Genre genre : film.getGenres()) {
@@ -87,18 +83,5 @@ public class FilmDbStorage implements FilmStorage {
         film.setMpa(mpaDao.getById(film.getMpa().getId()));
 
         return film;
-    }
-
-    private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("id");
-        String name = rs.getString("name");
-        String description = rs.getString("description");
-        LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
-        int duration = rs.getInt("duration");
-        int rate = likesDao.getAllByFilmId(id).size();
-        Set<Genre> genres = genreDao.getAllByFilmId(id);
-        Mpa mpa = mpaDao.getById(rs.getInt("mpa_id"));
-
-        return new Film(id, name, description, releaseDate, duration, rate, genres, mpa);
     }
 }
