@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
+import ru.yandex.practicum.filmorate.dao.MarksDao;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.repository.FilmStorage;
@@ -18,15 +18,15 @@ import java.util.List;
 public class FilmServiceImpl implements FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final LikesDao likesDao;
+    private final MarksDao marksDao;
 
     @Autowired
     public FilmServiceImpl(@Qualifier("FilmDbStorage") FilmStorage filmStorage,
                            @Qualifier("UserDbStorage") UserStorage userStorage,
-                           LikesDao likesDao) {
+                           MarksDao marksDao) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
-        this.likesDao = likesDao;
+        this.marksDao = marksDao;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public Film addFilm(Film film) {
         Film newFilm = filmStorage.save(film);
-        log.info(String.format("Добавлен фильм: id=%d, name=%s", newFilm.getId(), newFilm.getName()));
+        log.info("Добавлен фильм: id={}, name={}", newFilm.getId(), newFilm.getName());
 
         return newFilm;
     }
@@ -57,37 +57,42 @@ public class FilmServiceImpl implements FilmService {
     public Film updateFilm(Film film) {
         filmStorage.getById(film.getId()); // проверка наличия фильма
         filmStorage.save(film);
-        log.info(String.format("Обновлен фильм: id=%d, name=%s", film.getId(), film.getName()));
+        log.info("Обновлен фильм: id={}, name={}", film.getId(), film.getName());
 
         return film;
     }
 
     @Override
-    public void like(int id, int userId) {
+    public void addMark(int id, int userId, int mark) {
         filmStorage.getById(id); // проверка наличия фильма
         userStorage.getById(userId); // проверка наличия пользователя
-        likesDao.save(id, userId);
-        log.info(String.format("Поставлен лайк фильму с id=%d пользователем с id=%d", id, userId));
+        double currentMark = marksDao.get(id, userId);
+        if (currentMark == 0) {
+            marksDao.save(id, userId, mark);
+        } else {
+            marksDao.update(id, userId, mark);
+        }
+        log.info("Поставлена оценка {} фильму с id={} пользователем с id={}", mark, id, userId);
     }
 
     @Override
-    public void deleteLike(int id, int userId) {
+    public void deleteMark(int id, int userId) {
         filmStorage.getById(id); // проверка наличия фильма
         userStorage.getById(userId); // проверка наличия пользователя
-        if (!likesDao.getAllByFilmId(id).contains(userId)) {
-            throw new UserNotFoundException(String.format("Пользователь с id=%d не ставил лайк фильму с id=%d.",
+        if (!marksDao.getAllUsersByFilmId(id).contains(userId)) {
+            throw new UserNotFoundException(String.format("Пользователь с id=%d не ставил оценку фильму с id=%d.",
                     userId, id));
         }
-        likesDao.delete(id, userId);
-        log.info(String.format("Удален лайк фильму с id=%d пользователем с id=%d", id, userId));
+        marksDao.delete(id, userId);
+        log.info("Удалена оценка фильму с id={} пользователем с id={}", id, userId);
     }
 
     @Override
-    public List<Film> getTopLikes(int count) {
-        List<Film> topLikes = likesDao.getTop(count);
-        log.info(String.format("Возвращен список из %d фильмов с наибольшим количеством лайков: %s",
-                topLikes.size(), topLikes));
+    public List<Film> getTopRating(int count) {
+        List<Film> topRating = marksDao.getTop(count);
+        log.info("Возвращен список из {} фильмов с наивысшей оценкой: {}",
+                topRating.size(), topRating);
 
-        return topLikes;
+        return topRating;
     }
 }

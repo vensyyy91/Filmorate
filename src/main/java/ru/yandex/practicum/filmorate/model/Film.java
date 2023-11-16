@@ -26,7 +26,7 @@ public class Film {
     private LocalDate releaseDate;
     @Positive
     private int duration;
-    private int rate;
+    private double rate;
     @JsonDeserialize(as = TreeSet.class)
     private Set<Genre> genres = new TreeSet<>();
     private Mpa mpa;

@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.util;
 
 import ru.yandex.practicum.filmorate.dao.GenreDao;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
+import ru.yandex.practicum.filmorate.dao.MarksDao;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -29,13 +29,13 @@ public class Mapper {
         return new User(id, email, login, name, birthday);
     }
 
-    public static Film makeFilm(ResultSet rs, int rowNum, LikesDao likesDao, GenreDao genreDao, MpaDao mpaDao) throws SQLException {
+    public static Film makeFilm(ResultSet rs, MarksDao marksDao, GenreDao genreDao, MpaDao mpaDao) throws SQLException {
         int id = rs.getInt("id");
         String name = rs.getString("name");
         String description = rs.getString("description");
         LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
         int duration = rs.getInt("duration");
-        int rate = likesDao.getAllByFilmId(id).size();
+        double rate = marksDao.getFilmRate(id);
         Set<Genre> genres = genreDao.getAllByFilmId(id);
         Mpa mpa = mpaDao.getById(rs.getInt("mpa_id"));
 

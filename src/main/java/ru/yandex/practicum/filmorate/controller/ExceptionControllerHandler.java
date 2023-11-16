@@ -53,10 +53,10 @@ public class ExceptionControllerHandler {
         return new Response(ex.getMessage());
     }
 
-    @ExceptionHandler
+    /*@ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Response handleAnyAnotherException(Throwable ex) {
         log.error("Произошла непредвиденная ошибка: " + ex.getMessage());
         return new Response("Произошла непредвиденная ошибка: " + ex.getMessage());
-    }
+    }*/
 }

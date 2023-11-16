@@ -40,21 +40,21 @@ public class FilmController {
         return service.updateFilm(film);
     }
 
-    @PutMapping("/{id}/like/{userId}")
-    public void like(@PathVariable int id, @PathVariable int userId) {
-        log.info("Получен запрос PUT /films/{}/like/{}", id, userId);
-        service.like(id, userId);
+    @PutMapping("/{id}/mark/{userId}/{mark}")
+    public void addMark(@PathVariable int id, @PathVariable int userId, @PathVariable int mark) {
+        log.info("Получен запрос PUT /films/{}/mark/{}?mark={}", id, userId, mark);
+        service.addMark(id, userId, mark);
     }
 
-    @DeleteMapping("/{id}/like/{userId}")
-    public void deleteLike(@PathVariable int id, @PathVariable int userId) {
-        log.info("Получен запрос DELETE /films/{}/like/{}", id, userId);
-        service.deleteLike(id, userId);
+    @DeleteMapping("/{id}/mark/{userId}")
+    public void deleteMark(@PathVariable int id, @PathVariable int userId) {
+        log.info("Получен запрос DELETE /films/{}/mark/{}", id, userId);
+        service.deleteMark(id, userId);
     }
 
     @GetMapping("/popular")
-    public List<Film> getTopLikes(@RequestParam(defaultValue = "10") int count) {
+    public List<Film> getTopRating(@RequestParam(defaultValue = "10") int count) {
         log.info("Получен запрос GET /films/popular");
-        return service.getTopLikes(count);
+        return service.getTopRating(count);
     }
 }

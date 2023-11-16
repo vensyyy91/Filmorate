@@ -6,13 +6,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.GenreDao;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
+import ru.yandex.practicum.filmorate.dao.MarksDao;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.util.Mapper;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,20 +23,20 @@ import java.util.stream.Collectors;
 public class FilmDbStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
     private final GenreDao genreDao;
-    private final LikesDao likesDao;
+    private final MarksDao marksDao;
     private final MpaDao mpaDao;
 
     @Override
     public List<Film> getAll() {
         String sql = "SELECT * FROM films";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao));
+        return jdbcTemplate.query(sql, this::makeFilm);
     }
 
     @Override
     public Film getById(int id) {
         String sql = "SELECT * FROM films WHERE id = ?";
         try {
-            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao), id);
+            return jdbcTemplate.queryForObject(sql, this::makeFilm, id);
         } catch (EmptyResultDataAccessException ex) {
             throw new FilmNotFoundException(String.format("Фильм с id=%d не найден.", id));
         }
@@ -77,11 +79,15 @@ public class FilmDbStorage implements FilmStorage {
                     jdbcTemplate.update(sqlDeleteGenre, genreId);
                 }
             }
-            film.setRate(likesDao.getAllByFilmId(film.getId()).size());
+            film.setRate(marksDao.getFilmRate(film.getId()));
         }
         film.setGenres(genreDao.getAllByFilmId(film.getId()));
         film.setMpa(mpaDao.getById(film.getMpa().getId()));
 
         return film;
+    }
+
+    private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
+        return Mapper.makeFilm(rs, marksDao, genreDao, mpaDao);
     }
 }
