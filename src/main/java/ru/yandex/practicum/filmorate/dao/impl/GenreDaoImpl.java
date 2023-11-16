@@ -7,9 +7,8 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.GenreDao;
 import ru.yandex.practicum.filmorate.exception.GenreNotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.util.Mapper;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -22,14 +21,14 @@ public class GenreDaoImpl implements GenreDao {
     @Override
     public List<Genre> getAll() {
         String sql = "SELECT * FROM genres";
-        return jdbcTemplate.query(sql, this::makeGenre);
+        return jdbcTemplate.query(sql, Mapper::makeGenre);
     }
 
     @Override
     public Genre getById(int id) {
         String sql = "SELECT * FROM genres WHERE genre_id = ?";
         try {
-            return jdbcTemplate.queryForObject(sql, this::makeGenre, id);
+            return jdbcTemplate.queryForObject(sql, Mapper::makeGenre, id);
         } catch (EmptyResultDataAccessException ex) {
             throw new GenreNotFoundException(String.format("Жанр с id=%d не найден.", id));
         }
@@ -38,13 +37,6 @@ public class GenreDaoImpl implements GenreDao {
     @Override
     public Set<Genre> getAllByFilmId(int filmId) {
         String sql = "SELECT * FROM genres WHERE genre_id IN (SELECT genre_id FROM film_genre WHERE film_id = ?)";
-        return new TreeSet<>(jdbcTemplate.query(sql, this::makeGenre, filmId));
-    }
-
-    private Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("genre_id");
-        String name = rs.getString("genre_name");
-
-        return new Genre(id, name);
+        return new TreeSet<>(jdbcTemplate.query(sql, Mapper::makeGenre, filmId));
     }
 }

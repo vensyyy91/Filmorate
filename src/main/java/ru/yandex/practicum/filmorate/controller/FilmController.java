@@ -42,13 +42,13 @@ public class FilmController {
 
     @PutMapping("/{id}/like/{userId}")
     public void like(@PathVariable int id, @PathVariable int userId) {
-        log.info(String.format("Получен запрос PUT /films/%d/like/%d", id, userId));
+        log.info("Получен запрос PUT /films/{}/like/{}", id, userId);
         service.like(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void deleteLike(@PathVariable int id, @PathVariable int userId) {
-        log.info(String.format("Получен запрос DELETE /films/%d/like/%d", id, userId));
+        log.info("Получен запрос DELETE /films/{}/like/{}", id, userId);
         service.deleteLike(id, userId);
     }
 

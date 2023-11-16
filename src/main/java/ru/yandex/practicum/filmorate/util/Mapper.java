@@ -62,4 +62,18 @@ public class Mapper {
 
         return filmMap;
     }
+
+    public static Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
+        int id = rs.getInt("genre_id");
+        String name = rs.getString("genre_name");
+
+        return new Genre(id, name);
+    }
+
+    public static Mpa makeMpa(ResultSet rs, int rowNum) throws SQLException {
+        int id = rs.getInt("mpa_id");
+        String name = rs.getString("mpa_name");
+
+        return new Mpa(id, name);
+    }
 }

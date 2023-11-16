@@ -7,9 +7,8 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.exception.MpaNotFoundException;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.util.Mapper;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 @Component
@@ -20,23 +19,16 @@ public class MpaDaoImpl implements MpaDao {
     @Override
     public List<Mpa> getAll() {
         String sql = "SELECT * FROM mpa";
-        return jdbcTemplate.query(sql, this::makeMpa);
+        return jdbcTemplate.query(sql, Mapper::makeMpa);
     }
 
     @Override
     public Mpa getById(int id) {
         String sql = "SELECT * FROM mpa WHERE mpa_id = ?";
         try {
-            return jdbcTemplate.queryForObject(sql, this::makeMpa, id);
+            return jdbcTemplate.queryForObject(sql, Mapper::makeMpa, id);
         } catch (EmptyResultDataAccessException ex) {
             throw new MpaNotFoundException(String.format("Рейтинг с id=%d не найден.", id));
         }
-    }
-
-    private Mpa makeMpa(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("mpa_id");
-        String name = rs.getString("mpa_name");
-
-        return new Mpa(id, name);
     }
 }

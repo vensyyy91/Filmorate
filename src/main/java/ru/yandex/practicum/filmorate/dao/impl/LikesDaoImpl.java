@@ -7,14 +7,11 @@ import ru.yandex.practicum.filmorate.dao.GenreDao;
 import ru.yandex.practicum.filmorate.dao.LikesDao;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.util.Mapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -50,15 +47,6 @@ public class LikesDaoImpl implements LikesDao {
     }
 
     private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("id");
-        String name = rs.getString("name");
-        String description = rs.getString("description");
-        LocalDate releaseDate = rs.getDate("release_date").toLocalDate();
-        int duration = rs.getInt("duration");
-        int rate = getAllByFilmId(id).size();
-        Set<Genre> genres = genreDao.getAllByFilmId(id);
-        Mpa mpa = mpaDao.getById(rs.getInt("mpa_id"));
-
-        return new Film(id, name, description, releaseDate, duration, rate, genres, mpa);
+        return Mapper.makeFilm(rs, rowNum, this, genreDao, mpaDao);
     }
 }
