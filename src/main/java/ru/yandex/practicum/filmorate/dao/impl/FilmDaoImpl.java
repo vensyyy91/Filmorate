@@ -1,10 +1,11 @@
-package ru.yandex.practicum.filmorate.repository;
+package ru.yandex.practicum.filmorate.dao.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.dao.FilmDao;
 import ru.yandex.practicum.filmorate.dao.GenreDao;
 import ru.yandex.practicum.filmorate.dao.MarksDao;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
@@ -20,7 +21,7 @@ import java.util.stream.Collectors;
 
 @Component("FilmDbStorage")
 @RequiredArgsConstructor
-public class FilmDbStorage implements FilmStorage {
+public class FilmDaoImpl implements FilmDao {
     private final JdbcTemplate jdbcTemplate;
     private final GenreDao genreDao;
     private final MarksDao marksDao;
