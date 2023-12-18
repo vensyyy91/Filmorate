@@ -9,16 +9,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.dao.*;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,6 +29,7 @@ class FilmorateApplicationTests {
 	private final MpaDao mpaDao;
 	private final LikesDao likesDao;
 	private final FriendsDao friendsDao;
+	private final DirectorDao directorDao;
 	private static final Genre GENRE_COMEDY = new Genre(1, "Комедия");
 	private static final Genre GENRE_DRAMA = new Genre(2, "Драма");
 	private static final Genre GENRE_CARTOON = new Genre(3, "Мультфильм");
@@ -64,11 +59,15 @@ class FilmorateApplicationTests {
 				"VALUES (1, 2), (2, 1), (2, 2), (3, 1), (3, 2), (3, 3)";
 		String sqlAddFriends = "INSERT INTO friends (user_id, friend_id) " +
 				"VALUES (1, 2), (1, 3), (2, 3), (3, 1)";
+		String sqlAddDirectors = "INSERT INTO directors (director_name) VALUES ('director1'), ('director2')";
+		String sqlAddFilmDirectors = "INSERT INTO film_director (film_id, director_id) VALUES (1, 1), (2, 1), (2, 2)";
 		jdbcTemplate.update(sqlAddFilms);
 		jdbcTemplate.update(sqlAddUsers);
 		jdbcTemplate.update(sqlAddGenres);
 		jdbcTemplate.update(sqlAddLikes);
 		jdbcTemplate.update(sqlAddFriends);
+		jdbcTemplate.update(sqlAddDirectors);
+		jdbcTemplate.update(sqlAddFilmDirectors);
 	}
 
 	@Test
@@ -78,10 +77,10 @@ class FilmorateApplicationTests {
 		assertThat(films).hasSize(3);
 		assertThat(films.get(0)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 1,
-				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 		assertThat(films.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 		assertThat(films.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
 				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
@@ -90,6 +89,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getAllFilmsWhenEmpty() {
 		jdbcTemplate.update("DELETE FROM film_genre");
+		jdbcTemplate.update("DELETE FROM film_director");
 		jdbcTemplate.update("DELETE FROM likes");
 		jdbcTemplate.update("DELETE FROM films");
 		List<Film> films = filmDao.getAll();
@@ -334,6 +334,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getAllMpaWhenEmpty() {
 		jdbcTemplate.update("DELETE FROM film_genre");
+		jdbcTemplate.update("DELETE FROM film_director");
 		jdbcTemplate.update("DELETE FROM likes");
 		jdbcTemplate.update("DELETE FROM films");
 		jdbcTemplate.update("DELETE FROM mpa");
@@ -403,10 +404,10 @@ class FilmorateApplicationTests {
 				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 1,
-				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 	}
 
 	@Test
@@ -419,7 +420,7 @@ class FilmorateApplicationTests {
 				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 	}
 
 	@Test
@@ -433,10 +434,10 @@ class FilmorateApplicationTests {
 				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 0,
-				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 0,
-				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 	}
 
 	@Test
@@ -447,10 +448,10 @@ class FilmorateApplicationTests {
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 0,
-				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 0,
-				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 0,
 				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
@@ -519,5 +520,136 @@ class FilmorateApplicationTests {
 		List<User> commonFriends = friendsDao.getCommonById(1, 2);
 
 		assertThat(commonFriends).hasSize(0);
+	}
+
+	@Test
+	public void getAllDirectors() {
+		List<Director> directors = directorDao.getAll();
+
+		assertThat(directors).hasSize(2);
+		assertThat(directors.get(0)).isEqualTo(new Director(1, "director1"));
+		assertThat(directors.get(1)).isEqualTo(new Director(2, "director2"));
+	}
+
+	@Test
+	public void getAllDirectorsWhenEmpty() {
+		jdbcTemplate.update("DELETE FROM directors");
+		List<Director> directors = directorDao.getAll();
+
+		assertThat(directors).hasSize(0);
+	}
+
+	@Test
+	public void getDirectorById() {
+		Director director = directorDao.getById(1);
+
+		assertThat(director).isNotNull();
+		assertThat(director).hasFieldOrPropertyWithValue("id", 1);
+	}
+
+	@Test
+	public void getDirectorByNonExistingId() {
+		assertThatThrownBy(() -> directorDao.getById(999)).hasMessage("Режиссер с id=999 не найден.");
+	}
+
+	@Test
+	public void addDirector() {
+		Director director = new Director(0, "director3");
+		Director directorReturned = directorDao.save(director);
+		Director directorFromDb = directorDao.getById(3);
+
+		assertThat(directorReturned).isNotNull();
+		assertThat(directorReturned).hasFieldOrPropertyWithValue("id", 3);
+		assertThat(directorFromDb).isNotNull();
+		assertThat(directorFromDb).isEqualTo(directorReturned);
+		assertThat(directorFromDb).hasFieldOrPropertyWithValue("name", "director3");
+	}
+
+	@Test
+	public void updateDirector() {
+		Director updatedDirector = new Director(1, "updated director1");
+		Director directorReturned = directorDao.update(updatedDirector);
+		Director directorFromDb = directorDao.getById(1);
+
+		assertThat(directorReturned).isNotNull();
+		assertThat(directorReturned).hasFieldOrPropertyWithValue("id", 1);
+		assertThat(directorReturned).hasFieldOrPropertyWithValue("name", "updated director1");
+		assertThat(directorFromDb).isNotNull();
+		assertThat(directorFromDb).isEqualTo(directorReturned);
+		assertThat(directorFromDb).hasFieldOrPropertyWithValue("name", "updated director1");
+	}
+
+	@Test
+	public void deleteDirector() {
+		directorDao.delete(2);
+		List<Director> directors = directorDao.getAll();
+
+		assertThat(directors).hasSize(1);
+		assertThat(directors.get(0)).hasFieldOrPropertyWithValue("id", 1);
+		assertThatThrownBy(() -> directorDao.getById(2)).hasMessage("Режиссер с id=2 не найден.");
+	}
+
+	@Test
+	public void getAllByFilmId() {
+		List<Director> directors = new ArrayList<>(directorDao.getAllByFilmId(1));
+
+		assertThat(directors).hasSize(1);
+		assertThat(directors.get(0)).hasFieldOrPropertyWithValue("id", 1);
+		assertThat(directors.get(0)).hasFieldOrPropertyWithValue("name", "director1");
+	}
+
+	@Test
+	public void getAllByFilmIdWhenEmpty() {
+		List<Director> directors = new ArrayList<>(directorDao.getAllByFilmId(3));
+
+		assertThat(directors).hasSize(0);
+	}
+
+	@Test
+	public void getDirectorFilmsWithNoSorting() {
+		List<Film> films = filmDao.getDirectorFilms(1, null);
+
+		assertThat(films).hasSize(2);
+		assertThat(films).contains(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+		assertThat(films).contains(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getDirectorFilmsWithSortingByYear() {
+		List<Film> films = filmDao.getDirectorFilms(1, "year");
+
+		assertThat(films).hasSize(2);
+		assertThat(films.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+		assertThat(films.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getDirectorFilmsWithSortingByLikes() {
+		List<Film> films = filmDao.getDirectorFilms(1, "likes");
+
+		assertThat(films).hasSize(2);
+		assertThat(films.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+		assertThat(films.get(1)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void getDirectorFilmsWithUnknownSorting() {
+		assertThatThrownBy(() -> filmDao.getDirectorFilms(1, "name"))
+				.hasMessage("Параметр сортировки должен быть year или likes");
 	}
 }
