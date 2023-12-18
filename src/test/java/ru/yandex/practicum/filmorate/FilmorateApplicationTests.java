@@ -15,6 +15,7 @@ import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -77,13 +78,13 @@ class FilmorateApplicationTests {
 		assertThat(films).hasSize(3);
 		assertThat(films.get(0)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 1,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
 		assertThat(films.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
 		assertThat(films.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 	}
 
 	@Test
@@ -394,65 +395,65 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getTopLikesAllFilms() {
-		List<Film> topLikes = likesDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 1,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
 	}
 
 	@Test
 	public void getTopLikesFewerThanFilms() {
-		List<Film> topLikes = likesDao.getTop(2);
+		List<Film> topLikes = filmDao.getTop(2);
 
 		assertThat(topLikes).hasSize(2);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
 	}
 
 	@Test
 	public void getTopLikesWhenSomeWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes WHERE film_id IN (1, 2)");
-		List<Film> topLikes = likesDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 0,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 0,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
 	}
 
 	@Test
 	public void getTopLikesWhenAllWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes");
-		List<Film> topLikes = likesDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 0,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 0,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Collections.emptySet()));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 0,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 	}
 
 	@Test

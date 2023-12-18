@@ -12,7 +12,7 @@ import ru.yandex.practicum.filmorate.util.Mapper;
 
 import java.util.List;
 
-@Component("UserDbStorage")
+@Component
 @RequiredArgsConstructor
 public class UserDaoImpl implements UserDao {
     private final JdbcTemplate jdbcTemplate;

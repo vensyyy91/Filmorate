@@ -24,7 +24,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     public User get(@PathVariable int id) {
-        log.info("Получен запрос GET /users/" + id);
+        log.info("Получен запрос GET /users/{}", id);
         return service.getUser(id);
     }
 

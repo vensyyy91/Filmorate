@@ -5,37 +5,39 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.dao.FilmDao;
-import ru.yandex.practicum.filmorate.dao.GenreDao;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
-import ru.yandex.practicum.filmorate.dao.MpaDao;
+import ru.yandex.practicum.filmorate.dao.*;
 import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.util.Mapper;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-@Component("FilmDbStorage")
+@Component
 @RequiredArgsConstructor
 public class FilmDaoImpl implements FilmDao {
     private final JdbcTemplate jdbcTemplate;
     private final GenreDao genreDao;
     private final LikesDao likesDao;
     private final MpaDao mpaDao;
+    private final DirectorDao directorDao;
 
     @Override
     public List<Film> getAll() {
         String sql = "SELECT * FROM films";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao));
+        return jdbcTemplate.query(sql, this::makeFilm);
     }
 
     @Override
     public Film getById(int id) {
         String sql = "SELECT * FROM films WHERE id = ?";
         try {
-            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao), id);
+            return jdbcTemplate.queryForObject(sql, this::makeFilm, id);
         } catch (EmptyResultDataAccessException ex) {
             throw new FilmNotFoundException(String.format("Фильм с id=%d не найден.", id));
         }
@@ -49,9 +51,11 @@ public class FilmDaoImpl implements FilmDao {
                     .usingGeneratedKeyColumns("id");
             int id = simpleJdbcInsert.executeAndReturnKey(Mapper.filmToMap(film)).intValue();
             film.setId(id);
-            String sqlAddFilm = "INSERT INTO film_genre (film_id, genre_id) VALUES (" + film.getId() + ", ?)";
-            for (Genre genre : film.getGenres()) {
-                jdbcTemplate.update(sqlAddFilm, genre.getId());
+            if (!film.getGenres().isEmpty()) {
+                jdbcTemplate.update(getSqlForGenres(film));
+            }
+            if (!film.getDirectors().isEmpty()) {
+                jdbcTemplate.update(getSqlForDirectors(film));
             }
         } else {
             String sqlUpdateFilm = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, " +
@@ -61,28 +65,101 @@ public class FilmDaoImpl implements FilmDao {
             List<Integer> genres = film.getGenres().stream()
                     .map(Genre::getId)
                     .collect(Collectors.toList());
-            List<Integer> genresFromDb = genreDao.getAllByFilmId(film.getId()).stream()
-                    .map(Genre::getId)
+            updateGenres(film.getId(), genres);
+            List<Integer> directors = film.getDirectors().stream()
+                    .map(Director::getId)
                     .collect(Collectors.toList());
-            String sqlAddGenre = "INSERT INTO film_genre (film_id, genre_id) VALUES (" + film.getId() + ", ?)";
-            String sqlDeleteGenre = "DELETE FROM film_genre WHERE film_id = " + film.getId() + " AND genre_id = ?";
-            for (Integer genreId : genres) {
-                if (genresFromDb.contains(genreId)) {
-                    genresFromDb.remove(genreId);
-                } else {
-                    jdbcTemplate.update(sqlAddGenre, genreId);
-                }
-            }
-            if (!genresFromDb.isEmpty()) {
-                for (Integer genreId : genresFromDb) {
-                    jdbcTemplate.update(sqlDeleteGenre, genreId);
-                }
-            }
+            updateDirectors(film.getId(), directors);
             film.setRate(likesDao.getAllByFilmId(film.getId()).size());
         }
         film.setGenres(genreDao.getAllByFilmId(film.getId()));
+        film.setDirectors(directorDao.getAllByFilmId(film.getId()));
         film.setMpa(mpaDao.getById(film.getMpa().getId()));
 
         return film;
+    }
+
+    @Override
+    public List<Film> getTop(int count) {
+        String sql = "SELECT f.* FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "GROUP BY f.id ORDER BY COUNT(l.user_id) DESC LIMIT ?";
+        return jdbcTemplate.query(sql, this::makeFilm, count);
+    }
+
+    @Override
+    public List<Film> getDirectorFilms(int directorId, String sortBy) {
+        String sql;
+        if (sortBy == null) {
+            sql = "SELECT * FROM films WHERE id IN (" +
+                    "SELECT film_id FROM film_director WHERE director_id = ?)";
+        } else if (sortBy.equals("year")) {
+            sql = "SELECT * FROM films WHERE id IN (" +
+                    "SELECT film_id FROM film_director WHERE director_id = ?" +
+                    ") ORDER BY EXTRACT(YEAR FROM release_date)";
+        } else if (sortBy.equals("likes")) {
+            sql = "SELECT f.* FROM films AS f LEFT JOIN likes AS l ON f.id = l.film_id WHERE f.id IN (" +
+                    "SELECT film_id FROM film_director WHERE director_id = ?" +
+                    ") GROUP BY f.id ORDER BY COUNT(l.user_id) DESC";
+        } else {
+            throw new IllegalArgumentException("Параметр сортировки должен быть year или likes");
+        }
+
+        return jdbcTemplate.query(sql, this::makeFilm, directorId);
+    }
+
+    private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
+        return Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao, directorDao);
+    }
+
+    private String getSqlForGenres(Film film) {
+        StringJoiner sqlGenres = new StringJoiner(", ");
+        for (Genre genre : film.getGenres()) {
+            sqlGenres.add(String.format("(%d, %d)", film.getId(), genre.getId()));
+        }
+
+        return "INSERT INTO film_genre (film_id, genre_id) VALUES " + sqlGenres;
+    }
+
+    private String getSqlForDirectors(Film film) {
+        StringJoiner sqlDirectors = new StringJoiner(", ");
+        for (Director director : film.getDirectors()) {
+            sqlDirectors.add(String.format("(%d, %d)", film.getId(), director.getId()));
+        }
+
+        return "INSERT INTO film_director (film_id, director_id) VALUES " + sqlDirectors;
+    }
+
+    private void updateGenres(int filmId, List<Integer> genres) {
+        List<Integer> genresFromDb = genreDao.getAllByFilmId(filmId).stream()
+                .map(Genre::getId)
+                .collect(Collectors.toList());
+        String sqlAddGenre = "INSERT INTO film_genre (film_id, genre_id) VALUES (" + filmId + ", ?)";
+        String sqlDeleteGenre = "DELETE FROM film_genre WHERE film_id = " + filmId + " AND genre_id = ?";
+        updateDatabase(genres, genresFromDb, sqlAddGenre, sqlDeleteGenre);
+    }
+
+    private void updateDirectors(int filmId, List<Integer> directors) {
+        List<Integer> directorsFromDb = directorDao.getAllByFilmId(filmId).stream()
+                .map(Director::getId)
+                .collect(Collectors.toList());
+        String sqlAddDirector = "INSERT INTO film_director (film_id, director_id) VALUES (" + filmId + ", ?)";
+        String sqlDeleteDirector = "DELETE FROM film_director WHERE film_id = " + filmId + " AND director_id = ?";
+        updateDatabase(directors, directorsFromDb, sqlAddDirector, sqlDeleteDirector);
+    }
+
+    private void updateDatabase(List<Integer> newList, List<Integer> listFromDb, String sqlAdd, String sqlDelete) {
+        for (Integer id : newList) {
+            if (listFromDb.contains(id)) {
+                listFromDb.remove(id);
+            } else {
+                jdbcTemplate.update(sqlAdd, id);
+            }
+        }
+        if (!listFromDb.isEmpty()) {
+            for (Integer id : listFromDb) {
+                jdbcTemplate.update(sqlDelete, id);
+            }
+        }
     }
 }

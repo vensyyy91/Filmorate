@@ -10,4 +10,8 @@ public interface FilmDao {
     Film getById(int id);
 
     Film save(Film film);
+
+    List<Film> getTop(int count);
+
+    List<Film> getDirectorFilms(int directorId, String sortBy);
 }
