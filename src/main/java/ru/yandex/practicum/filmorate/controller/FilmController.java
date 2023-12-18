@@ -14,47 +14,53 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class FilmController {
-    private final FilmService service;
+    private final FilmService filmService;
 
     @GetMapping
     public List<Film> getAll() {
         log.info("Получен запрос GET /films");
-        return service.getAllFilms();
+        return filmService.getAllFilms();
     }
 
     @GetMapping("/{id}")
     public Film get(@PathVariable int id) {
-        log.info("Получен запрос GET /films/" + id);
-        return service.getFilm(id);
+        log.info("Получен запрос GET /films/{}", id);
+        return filmService.getFilm(id);
     }
 
     @PostMapping
     public Film add(@Valid @RequestBody Film film) {
         log.info("Получен запрос POST /films");
-        return service.addFilm(film);
+        return filmService.addFilm(film);
     }
 
     @PutMapping
     public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Получен запрос PUT /films");
-        return service.updateFilm(film);
+        return filmService.updateFilm(film);
     }
 
     @PutMapping("/{id}/like/{userId}")
     public void like(@PathVariable int id, @PathVariable int userId) {
         log.info("Получен запрос PUT /films/{}/like/{}", id, userId);
-        service.like(id, userId);
+        filmService.like(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public void deleteLike(@PathVariable int id, @PathVariable int userId) {
         log.info("Получен запрос DELETE /films/{}/like/{}", id, userId);
-        service.deleteLike(id, userId);
+        filmService.deleteLike(id, userId);
     }
 
     @GetMapping("/popular")
     public List<Film> getTopLikes(@RequestParam(defaultValue = "10") int count) {
         log.info("Получен запрос GET /films/popular");
-        return service.getTopLikes(count);
+        return filmService.getTopLikes(count);
+    }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getDirectorFilms(@PathVariable int directorId, @RequestParam(required = false) String sortBy) {
+        log.info("Получен запрос GET /films/director/{}", directorId);
+        return filmService.getDirectorFilms(directorId, sortBy);
     }
 }

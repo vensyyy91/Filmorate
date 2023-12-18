@@ -30,6 +30,8 @@ public class Film {
     @JsonDeserialize(as = TreeSet.class)
     private Set<Genre> genres = new TreeSet<>();
     private Mpa mpa;
+    @JsonDeserialize(as = TreeSet.class)
+    private Set<Director> directors = new TreeSet<>();
 
     public Film(String name, String description, LocalDate releaseDate, int duration, Set<Genre> genres, Mpa mpa) {
         this.name = name;

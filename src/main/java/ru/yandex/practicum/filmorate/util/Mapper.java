@@ -1,12 +1,10 @@
 package ru.yandex.practicum.filmorate.util;
 
+import ru.yandex.practicum.filmorate.dao.DirectorDao;
 import ru.yandex.practicum.filmorate.dao.GenreDao;
 import ru.yandex.practicum.filmorate.dao.LikesDao;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,7 +27,12 @@ public class Mapper {
         return new User(id, email, login, name, birthday);
     }
 
-    public static Film makeFilm(ResultSet rs, int rowNum, LikesDao likesDao, GenreDao genreDao, MpaDao mpaDao) throws SQLException {
+    public static Film makeFilm(ResultSet rs,
+                                int rowNum,
+                                LikesDao likesDao,
+                                GenreDao genreDao,
+                                MpaDao mpaDao,
+                                DirectorDao directorDao) throws SQLException {
         int id = rs.getInt("id");
         String name = rs.getString("name");
         String description = rs.getString("description");
@@ -38,8 +41,9 @@ public class Mapper {
         int rate = likesDao.getAllByFilmId(id).size();
         Set<Genre> genres = genreDao.getAllByFilmId(id);
         Mpa mpa = mpaDao.getById(rs.getInt("mpa_id"));
+        Set<Director> director = directorDao.getAllByFilmId(id);
 
-        return new Film(id, name, description, releaseDate, duration, rate, genres, mpa);
+        return new Film(id, name, description, releaseDate, duration, rate, genres, mpa, director);
     }
 
     public static Map<String,Object> userToMap(User user) {
@@ -52,7 +56,7 @@ public class Mapper {
         return userMap;
     }
 
-    public static Map<String,Object> filmToMap(Film film) {
+    public static Map<String, Object> filmToMap(Film film) {
         Map<String, Object> filmMap = new HashMap<>();
         filmMap.put("name", film.getName());
         filmMap.put("description", film.getDescription());
@@ -75,5 +79,12 @@ public class Mapper {
         String name = rs.getString("mpa_name");
 
         return new Mpa(id, name);
+    }
+
+    public static Director makeDirector(ResultSet rs, int rowNum) throws SQLException {
+        int id = rs.getInt("director_id");
+        String name = rs.getString("director_name");
+
+        return new Director(id, name);
     }
 }
