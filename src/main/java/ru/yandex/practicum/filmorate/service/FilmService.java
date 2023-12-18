@@ -20,4 +20,6 @@ public interface FilmService {
     List<Film> getTopLikes(int count);
 
     List<Film> getDirectorFilms(int directorId, String sortBy);
+
+    List<Film> getCommonFilms(int userId, int friendId);
 }

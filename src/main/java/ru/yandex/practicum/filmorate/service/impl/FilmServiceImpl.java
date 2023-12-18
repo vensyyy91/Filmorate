@@ -91,4 +91,14 @@ public class FilmServiceImpl implements FilmService {
 
         return films;
     }
+
+    @Override
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        userDao.getById(userId); // проверка наличия пользователя
+        userDao.getById(friendId); // проверка наличия пользователя
+        List<Film> films = filmDao.getCommonFilms(userId, friendId);
+        log.info("Возвращен список общих фильмов для пользователей с id={} и id={}: {}", userId, friendId, films);
+
+        return films;
+    }
 }
