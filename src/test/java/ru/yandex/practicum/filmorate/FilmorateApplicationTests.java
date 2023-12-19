@@ -482,6 +482,41 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
+	public void getTopLikesWithGenreId() {
+		List<Film> topLikes = filmDao.getTop(10, 4, null);
+
+		assertThat(topLikes).hasSize(2);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
+				LocalDate.of(2008, 10, 1), 180, 3,
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getTopLikesWithYear() {
+		List<Film> topLikes = filmDao.getTop(10, null, 1990);
+
+		assertThat(topLikes).hasSize(1);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void getTopLikesWithGenreIdAndYear() {
+		List<Film> topLikes = filmDao.getTop(10, 4, 2005);
+
+		assertThat(topLikes).hasSize(1);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
 	public void getAllFriendsById() {
 		List<User> friends = friendsDao.getAllById(1);
 
