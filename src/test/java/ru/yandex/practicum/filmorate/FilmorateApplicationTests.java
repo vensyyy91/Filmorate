@@ -652,4 +652,27 @@ class FilmorateApplicationTests {
 		assertThatThrownBy(() -> filmDao.getDirectorFilms(1, "name"))
 				.hasMessage("Параметр сортировки должен быть year или likes");
 	}
+
+	@Test
+	public void getCommonFilms() {
+		List<Film> commonFilms = filmDao.getCommonFilms(1, 2);
+
+		assertThat(commonFilms).hasSize(2);
+		assertThat(commonFilms.get(0)).isEqualTo(new Film(3, "film3", "third test film",
+				LocalDate.of(2008, 10, 1), 180, 3,
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+		assertThat(commonFilms.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getCommonFilmsWhenEmpty() {
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1994-01-22')");
+		List<Film> commonFilms = filmDao.getCommonFilms(1, 4);
+
+		assertThat(commonFilms).hasSize(0);
+	}
 }
