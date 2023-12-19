@@ -10,4 +10,6 @@ public interface UserDao {
     User getById(int id);
 
     User save(User user);
+
+    void delete(int userId);
 }

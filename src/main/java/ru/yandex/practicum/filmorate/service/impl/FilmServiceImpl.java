@@ -56,6 +56,13 @@ public class FilmServiceImpl implements FilmService {
     }
 
     @Override
+    public void deleteFilm(int filmId) {
+        filmDao.getById(filmId); // проверка наличия фильма
+        filmDao.delete(filmId);
+        log.info("Удален фильм с id={}", filmId);
+    }
+
+    @Override
     public void like(int id, int userId) {
         filmDao.getById(id); // проверка наличия фильма
         userDao.getById(userId); // проверка наличия пользователя

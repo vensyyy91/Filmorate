@@ -40,6 +40,12 @@ public class FilmController {
         return filmService.updateFilm(film);
     }
 
+    @DeleteMapping("/{filmId}")
+    public void deleteFilm(@PathVariable int filmId) {
+        log.info("Получен запрос DELETE /films/{}", filmId);
+        filmService.deleteFilm(filmId);
+    }
+
     @PutMapping("/{id}/like/{userId}")
     public void like(@PathVariable int id, @PathVariable int userId) {
         log.info("Получен запрос PUT /films/{}/like/{}", id, userId);
