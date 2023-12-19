@@ -199,7 +199,7 @@ class FilmorateApplicationTests {
 	public void deleteFilm() {
 		filmDao.delete(1);
 		List<Film> films = filmDao.getAll();
-		List<Film> top = filmDao.getTop(5);
+		List<Film> top = filmDao.getTop(5, null, null);
 
 		assertThatThrownBy(() -> filmDao.getById(1)).hasMessage("Фильм с id=1 не найден.");
 		assertThat(films).hasSize(2);
@@ -420,7 +420,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getTopLikesAllFilms() {
-		List<Film> topLikes = filmDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
@@ -436,7 +436,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getTopLikesFewerThanFilms() {
-		List<Film> topLikes = filmDao.getTop(2);
+		List<Film> topLikes = filmDao.getTop(2, null, null);
 
 		assertThat(topLikes).hasSize(2);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
@@ -450,7 +450,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getTopLikesWhenSomeWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes WHERE film_id IN (1, 2)");
-		List<Film> topLikes = filmDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
@@ -467,7 +467,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getTopLikesWhenAllWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes");
-		List<Film> topLikes = filmDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
