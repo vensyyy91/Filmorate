@@ -108,6 +108,24 @@ public class FilmDaoImpl implements FilmDao {
         return jdbcTemplate.query(sql, this::makeFilm, directorId);
     }
 
+    @Override
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        String sql = "SELECT f.*, COUNT(l.user_id) AS rate " +
+                "FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "WHERE f.id IN (" +
+                    "SELECT film_id " +
+                    "FROM likes " +
+                    "WHERE user_id = ? OR user_id = ? " +
+                    "GROUP BY film_id " +
+                    "HAVING COUNT(user_id) = 2" +
+                ") " +
+                "GROUP BY f.id " +
+                "ORDER BY rate DESC";
+
+        return jdbcTemplate.query(sql, this::makeFilm, userId, friendId);
+    }
+
     private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
         return Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao, directorDao);
     }
