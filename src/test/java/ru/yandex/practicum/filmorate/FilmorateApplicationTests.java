@@ -199,7 +199,7 @@ class FilmorateApplicationTests {
 	public void deleteFilm() {
 		filmDao.delete(1);
 		List<Film> films = filmDao.getAll();
-		List<Film> top = filmDao.getTop(5);
+		List<Film> top = filmDao.getTop(5, null, null);
 
 		assertThatThrownBy(() -> filmDao.getById(1)).hasMessage("Фильм с id=1 не найден.");
 		assertThat(films).hasSize(2);
@@ -420,7 +420,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getTopLikesAllFilms() {
-		List<Film> topLikes = filmDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
@@ -436,7 +436,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getTopLikesFewerThanFilms() {
-		List<Film> topLikes = filmDao.getTop(2);
+		List<Film> topLikes = filmDao.getTop(2, null, null);
 
 		assertThat(topLikes).hasSize(2);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
@@ -450,7 +450,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getTopLikesWhenSomeWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes WHERE film_id IN (1, 2)");
-		List<Film> topLikes = filmDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
@@ -467,7 +467,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getTopLikesWhenAllWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes");
-		List<Film> topLikes = filmDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
@@ -479,6 +479,41 @@ class FilmorateApplicationTests {
 		assertThat(topLikes.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 0,
 				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+	}
+
+	@Test
+	public void getTopLikesWithGenreId() {
+		List<Film> topLikes = filmDao.getTop(10, 4, null);
+
+		assertThat(topLikes).hasSize(2);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
+				LocalDate.of(2008, 10, 1), 180, 3,
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getTopLikesWithYear() {
+		List<Film> topLikes = filmDao.getTop(10, null, 1990);
+
+		assertThat(topLikes).hasSize(1);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void getTopLikesWithGenreIdAndYear() {
+		List<Film> topLikes = filmDao.getTop(10, 4, 2005);
+
+		assertThat(topLikes).hasSize(1);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 	}
 
 	@Test

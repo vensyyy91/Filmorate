@@ -13,7 +13,7 @@ public interface FilmDao {
 
     void delete(int filmId);
 
-    List<Film> getTop(int count);
+    List<Film> getTop(int count, Integer genreId, Integer year);
 
     List<Film> getDirectorFilms(int directorId, String sortBy);
 

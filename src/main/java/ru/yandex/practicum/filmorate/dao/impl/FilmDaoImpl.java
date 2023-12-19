@@ -86,11 +86,22 @@ public class FilmDaoImpl implements FilmDao {
     }
 
     @Override
-    public List<Film> getTop(int count) {
-        String sql = "SELECT f.* FROM films AS f " +
-                "LEFT JOIN likes AS l ON f.id = l.film_id " +
-                "GROUP BY f.id ORDER BY COUNT(l.user_id) DESC LIMIT ?";
-        return jdbcTemplate.query(sql, this::makeFilm, count);
+    public List<Film> getTop(int count, Integer genreId, Integer year) {
+        StringBuilder sql = new StringBuilder("SELECT f.* FROM films AS f LEFT JOIN likes AS l ON f.id = l.film_id ");
+        if (genreId != null && year != null) {
+            sql.append("LEFT JOIN film_genre AS fg ON f.id = fg.film_id WHERE fg.genre_id = ")
+                    .append(genreId)
+                    .append(" AND EXTRACT(YEAR FROM f.release_date) = ")
+                    .append(year)
+                    .append(" ");
+        } else if (genreId != null) {
+            sql.append("LEFT JOIN film_genre AS fg ON f.id = fg.film_id WHERE fg.genre_id = ").append(genreId).append(" ");
+        } else if (year != null) {
+            sql.append("WHERE EXTRACT(YEAR FROM f.release_date) = ").append(year).append(" ");
+        }
+        sql.append("GROUP BY f.id ORDER BY COUNT(l.user_id) DESC LIMIT ?");
+
+        return jdbcTemplate.query(sql.toString(), this::makeFilm, count);
     }
 
     @Override

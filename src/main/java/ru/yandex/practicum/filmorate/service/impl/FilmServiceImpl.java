@@ -83,8 +83,8 @@ public class FilmServiceImpl implements FilmService {
     }
 
     @Override
-    public List<Film> getTopLikes(int count) {
-        List<Film> topLikes = filmDao.getTop(count);
+    public List<Film> getTopLikes(int count, Integer genreId, Integer year) {
+        List<Film> topLikes = filmDao.getTop(count, genreId, year);
         log.info("Возвращен список из {} фильмов с наибольшим количеством лайков: {}", topLikes.size(), topLikes);
 
         return topLikes;

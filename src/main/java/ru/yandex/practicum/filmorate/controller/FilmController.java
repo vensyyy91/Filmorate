@@ -2,17 +2,20 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
 import java.util.List;
 
 @RestController
 @RequestMapping("/films")
 @Slf4j
 @RequiredArgsConstructor
+@Validated
 public class FilmController {
     private final FilmService filmService;
 
@@ -59,9 +62,11 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getTopLikes(@RequestParam(defaultValue = "10") int count) {
+    public List<Film> getTopLikes(@RequestParam(defaultValue = "10") int count,
+                                  @RequestParam(required = false) @Positive Integer genreId,
+                                  @RequestParam(required = false) @Positive Integer year) {
         log.info("Получен запрос GET /films/popular");
-        return filmService.getTopLikes(count);
+        return filmService.getTopLikes(count, genreId, year);
     }
 
     @GetMapping("/director/{directorId}")
@@ -71,7 +76,7 @@ public class FilmController {
     }
 
     @GetMapping("/common")
-    public List<Film> getCommonFilms(@RequestParam int userId, @RequestParam int friendId) {
+    public List<Film> getCommonFilms(@RequestParam @Positive int userId, @RequestParam @Positive int friendId) {
         log.info("Получен запрос GET /films/common?userId={}&friendId={}", userId, friendId);
         return filmService.getCommonFilms(userId, friendId);
     }
