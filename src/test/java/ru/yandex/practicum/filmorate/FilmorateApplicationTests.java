@@ -196,6 +196,17 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
+	public void deleteFilm() {
+		filmDao.delete(1);
+		List<Film> films = filmDao.getAll();
+		List<Film> top = filmDao.getTop(5);
+
+		assertThatThrownBy(() -> filmDao.getById(1)).hasMessage("Фильм с id=1 не найден.");
+		assertThat(films).hasSize(2);
+		assertThat(top).hasSize(2);
+	}
+
+	@Test
 	public void getAllUsers() {
 		List<User> users = userDao.getAll();
 
@@ -265,6 +276,19 @@ class FilmorateApplicationTests {
 		assertThat(userFromDb).hasFieldOrPropertyWithValue("id", 4);
 		assertThat(userFromDb).hasFieldOrPropertyWithValue("email", "4@google.com");
 		assertThat(userReturned).hasFieldOrPropertyWithValue("name", "the fourth");
+	}
+
+	@Test
+	public void deleteUser() {
+		userDao.delete(1);
+		List<User> friends = friendsDao.getAllById(3);
+		Film film2 = filmDao.getById(2);
+		Film film3 = filmDao.getById(3);
+
+		assertThatThrownBy(() -> userDao.getById(1)).hasMessage("Пользователь с id=1 не найден.");
+		assertThat(friends).hasSize(0);
+		assertThat(film2).hasFieldOrPropertyWithValue("rate", 1);
+		assertThat(film3).hasFieldOrPropertyWithValue("rate", 2);
 	}
 
 	@Test
