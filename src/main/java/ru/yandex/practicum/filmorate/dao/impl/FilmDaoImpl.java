@@ -80,6 +80,12 @@ public class FilmDaoImpl implements FilmDao {
     }
 
     @Override
+    public void delete(int filmId) {
+        String sql = "DELETE FROM films WHERE id = ?";
+        jdbcTemplate.update(sql, filmId);
+    }
+
+    @Override
     public List<Film> getTop(int count) {
         String sql = "SELECT f.* FROM films AS f " +
                 "LEFT JOIN likes AS l ON f.id = l.film_id " +

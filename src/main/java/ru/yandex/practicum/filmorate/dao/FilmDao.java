@@ -11,6 +11,8 @@ public interface FilmDao {
 
     Film save(Film film);
 
+    void delete(int filmId);
+
     List<Film> getTop(int count);
 
     List<Film> getDirectorFilms(int directorId, String sortBy);

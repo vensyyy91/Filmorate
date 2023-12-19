@@ -57,6 +57,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void deleteUser(int userId) {
+        userDao.getById(userId); // проверка наличия пользователя
+        userDao.delete(userId);
+        log.info("Удален пользователь с id={}", userId);
+    }
+
+    @Override
     public void addFriend(int userId, int friendId) {
         userDao.getById(userId); // проверка наличия пользователя
         userDao.getById(friendId); // проверка наличия пользователя
