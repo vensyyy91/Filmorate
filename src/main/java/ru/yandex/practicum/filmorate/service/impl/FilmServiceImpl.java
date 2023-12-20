@@ -108,4 +108,11 @@ public class FilmServiceImpl implements FilmService {
 
         return films;
     }
+
+    @Override
+    public List<Film> search(String query, String by) {
+        List<Film> films = filmDao.search(query, by);
+        log.info("Возвращен результат поиска: {}", films);
+        return films;
+    }
 }

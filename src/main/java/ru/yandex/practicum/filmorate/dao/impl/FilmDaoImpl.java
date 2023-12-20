@@ -143,6 +143,28 @@ public class FilmDaoImpl implements FilmDao {
         return jdbcTemplate.query(sql, this::makeFilm, userId, friendId);
     }
 
+    @Override
+    public List<Film> search(String query, String by) {
+        query = "%" + query.toLowerCase() + "%";
+        List<Film> result;
+        switch (by) {
+            case "director,title":
+            case "title,director":
+                result = searchByDirectorAndTitle(query);
+                break;
+            case "director":
+                result = searchByDirector(query);
+                break;
+            case "title":
+                result = searchByTitle(query);
+                break;
+            default:
+                throw new IllegalArgumentException("Некорректный параметр by, укажите в параметре title, director или оба варианта.");
+        }
+
+        return result;
+    }
+
     private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
         return Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao, directorDao);
     }
@@ -196,5 +218,34 @@ public class FilmDaoImpl implements FilmDao {
                 jdbcTemplate.update(sqlDelete, id);
             }
         }
+    }
+
+    private List<Film> searchByDirectorAndTitle(String query) {
+        String sql = "SELECT f.* FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "LEFT JOIN film_director AS fd ON f.id = fd.film_id " +
+                "LEFT JOIN directors AS d ON fd.director_id = d.director_id " +
+                "WHERE LOWER(d.director_name) LIKE ? " +
+                "OR LOWER(f.name) LIKE ? " +
+                "GROUP BY f.id ORDER BY COUNT(l.user_id) DESC";
+        return jdbcTemplate.query(sql, this::makeFilm, query, query);
+    }
+
+    private List<Film> searchByDirector(String query) {
+        String sql = "SELECT f.* FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "LEFT JOIN film_director AS fd ON f.id = fd.film_id " +
+                "LEFT JOIN directors AS d ON fd.director_id = d.director_id " +
+                "WHERE LOWER(d.director_name) LIKE ? " +
+                "GROUP BY f.id ORDER BY COUNT(l.user_id) DESC";
+        return jdbcTemplate.query(sql, this::makeFilm, query);
+    }
+
+    private List<Film> searchByTitle(String query) {
+        String sql = "SELECT f.* FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "WHERE LOWER(name) LIKE ? " +
+                "GROUP BY f.id ORDER BY COUNT(l.user_id) DESC";
+        return jdbcTemplate.query(sql, this::makeFilm, query);
     }
 }

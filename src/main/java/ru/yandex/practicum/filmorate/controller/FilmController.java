@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Positive;
 import java.util.List;
 
@@ -79,5 +80,11 @@ public class FilmController {
     public List<Film> getCommonFilms(@RequestParam @Positive int userId, @RequestParam @Positive int friendId) {
         log.info("Получен запрос GET /films/common?userId={}&friendId={}", userId, friendId);
         return filmService.getCommonFilms(userId, friendId);
+    }
+
+    @GetMapping("/search")
+    public List<Film> search(@RequestParam @NotBlank String query, @RequestParam String by) {
+        log.info("Получен запрос GET /films/search?query={}&by={}", query, by);
+        return filmService.search(query, by);
     }
 }
