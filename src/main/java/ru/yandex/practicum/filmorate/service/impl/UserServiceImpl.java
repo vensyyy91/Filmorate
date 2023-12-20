@@ -3,8 +3,10 @@ package ru.yandex.practicum.filmorate.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.FilmDao;
 import ru.yandex.practicum.filmorate.dao.FriendsDao;
 import ru.yandex.practicum.filmorate.dao.UserDao;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -16,6 +18,7 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
     private final UserDao userDao;
     private final FriendsDao friendsDao;
+    private final FilmDao filmDao;
 
     @Override
     public List<User> getAllUsers() {
@@ -84,6 +87,7 @@ public class UserServiceImpl implements UserService {
         userDao.getById(userId); // проверка наличия пользователя
         List<User> userFriends = friendsDao.getAllById(userId);
         log.info(String.format("Возвращен список всех друзей пользователя с id=%d: %s", userId, userFriends));
+
         return userFriends;
     }
 
@@ -94,6 +98,16 @@ public class UserServiceImpl implements UserService {
         List<User> commonFriends = friendsDao.getCommonById(userId, otherId);
         log.info(String.format("Возвращен список всех общих друзей у пользователей с id=%d и id=%d: %s",
                 userId, otherId, commonFriends));
+
         return commonFriends;
+    }
+
+    @Override
+    public List<Film> getRecommendations(int id) {
+        userDao.getById(id); // проверка наличия пользователя
+        List<Film> films = filmDao.getRecommendations(id);
+        log.info("Возвращен список рекомендованных фильмов для пользователя с id={}: {}", id, films);
+
+        return films;
     }
 }

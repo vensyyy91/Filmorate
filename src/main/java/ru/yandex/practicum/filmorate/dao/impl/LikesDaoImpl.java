@@ -29,4 +29,17 @@ public class LikesDaoImpl implements LikesDao {
         String sql = "SELECT user_id FROM likes WHERE film_id = ?";
         return jdbcTemplate.queryForList(sql, Integer.class, filmId);
     }
+
+    @Override
+    public List<Integer> getUserIdWithCommonLikes(int userId) {
+        String sqlCommonLikes = "SELECT l2.user_id " +
+                "FROM likes AS l1, likes AS l2 " +
+                "WHERE l1.film_id = l2.film_id " +
+                "AND l1.user_id = ? " +
+                "AND l1.user_id <> l2.user_id " +
+                "GROUP BY l2.user_id " +
+                "HAVING COUNT(l2.film_id) > 0 " +
+                "ORDER BY COUNT(l2.film_id) DESC";
+        return jdbcTemplate.queryForList(sqlCommonLikes, Integer.class, userId);
+    }
 }

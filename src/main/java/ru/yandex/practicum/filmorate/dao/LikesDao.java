@@ -8,4 +8,6 @@ public interface LikesDao {
     void delete(int id, int userId);
 
     List<Integer> getAllByFilmId(int filmId);
+
+    List<Integer> getUserIdWithCommonLikes(int userId);
 }
