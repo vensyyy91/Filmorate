@@ -734,4 +734,43 @@ class FilmorateApplicationTests {
 
 		assertThat(commonFilms).hasSize(0);
 	}
+
+	@Test
+	public void searchByTitle() {
+		List<Film> result = filmDao.search("1", "title");
+
+		assertThat(result).hasSize(1);
+		assertThat(result.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void searchByDirector() {
+		List<Film> result = filmDao.search("1", "director");
+
+		assertThat(result).hasSize(2);
+		assertThat(result.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+		assertThat(result.get(1)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void searchByDirectorAndTitle() {
+		jdbcTemplate.update("DELETE FROM film_director WHERE film_id = 1");
+		List<Film> result = filmDao.search("1", "director,title");
+
+		assertThat(result).hasSize(2);
+		assertThat(result.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+		assertThat(result.get(1)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
+	}
 }
