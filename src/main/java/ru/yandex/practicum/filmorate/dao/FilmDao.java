@@ -20,4 +20,6 @@ public interface FilmDao {
     List<Film> getCommonFilms(int userId, int friendId);
 
     List<Film> search(String query, String by);
+
+    List<Film> getRecommendations(int id);
 }

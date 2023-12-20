@@ -165,6 +165,28 @@ public class FilmDaoImpl implements FilmDao {
         return result;
     }
 
+    @Override
+    public List<Film> getRecommendations(int id) {
+        List<Integer> userIdWithCommonLikes = likesDao.getUserIdWithCommonLikes(id);
+        StringJoiner userIdList = new StringJoiner(",");
+        for (Integer userId : userIdWithCommonLikes) {
+            userIdList.add(userId.toString());
+        }
+        String sql = "SELECT f.* " +
+                "FROM films AS f " +
+                "LEFT JOIN likes AS l ON f.id = l.film_id " +
+                "WHERE l.user_id IN (" + userIdList +
+                ") AND f.id NOT IN (" +
+                    "SELECT film_id " +
+                    "FROM likes " +
+                    "WHERE user_id = ?" +
+                ") " +
+                "GROUP BY f.id " +
+                "ORDER BY COUNT(l.user_id)";
+
+        return jdbcTemplate.query(sql, this::makeFilm, id);
+    }
+
     private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {
         return Mapper.makeFilm(rs, rowNum, likesDao, genreDao, mpaDao, directorDao);
     }
