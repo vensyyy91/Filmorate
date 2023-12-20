@@ -175,8 +175,8 @@ public class FilmDaoImpl implements FilmDao {
         String sql = "SELECT f.* " +
                 "FROM films AS f " +
                 "LEFT JOIN likes AS l ON f.id = l.film_id " +
-                "WHERE l.user_id IN (?) " +
-                "AND f.id NOT IN (" +
+                "WHERE l.user_id IN (" + userIdList +
+                ") AND f.id NOT IN (" +
                     "SELECT film_id " +
                     "FROM likes " +
                     "WHERE user_id = ?" +
@@ -184,7 +184,7 @@ public class FilmDaoImpl implements FilmDao {
                 "GROUP BY f.id " +
                 "ORDER BY COUNT(l.user_id)";
 
-        return jdbcTemplate.query(sql, this::makeFilm, userIdList.toString(), id);
+        return jdbcTemplate.query(sql, this::makeFilm, id);
     }
 
     private Film makeFilm(ResultSet rs, int rowNum) throws SQLException {

@@ -773,4 +773,43 @@ class FilmorateApplicationTests {
 				LocalDate.of(1990, 9, 10), 150, 1,
 				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
 	}
+
+	@Test
+	public void getRecommendations() {
+		jdbcTemplate.update("INSERT INTO films (name, description, release_date, duration, mpa_id) " +
+				"VALUES ('film4', 'fourth test film', '2000-10-15', 100, 3)");
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1995-10-12')");
+		jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (1, 4), (3, 4), (4, 3)");
+		List<Film> recommendations = filmDao.getRecommendations(4);
+
+		assertThat(recommendations).hasSize(2);
+		assertThat(recommendations.get(0)).isEqualTo(new Film(4, "film4", "fourth test film",
+				LocalDate.of(2000, 10, 15), 100, 1,
+				Collections.emptySet(), MPA_PG_13, Collections.emptySet()));
+		assertThat(recommendations.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getRecommendationsWhenNoLikes() {
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1995-10-12')");
+		List<Film> recommendations = filmDao.getRecommendations(4);
+
+		assertThat(recommendations).hasSize(0);
+	}
+
+	@Test
+	public void getRecommendationsWhenNoCommonLikes() {
+		jdbcTemplate.update("DELETE FROM likes WHERE film_id = 1");
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1995-10-12')");
+		jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (1, 4)");
+		List<Film> recommendations = filmDao.getRecommendations(4);
+
+		assertThat(recommendations).hasSize(0);
+	}
 }
