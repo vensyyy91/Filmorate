@@ -8,7 +8,7 @@ public interface ReviewDao {
     List<Review> getAll(Integer filmId, int count);
 
     Review getById(int id);
-    
+
     Review save(Review review);
 
     Review update(Review review);
