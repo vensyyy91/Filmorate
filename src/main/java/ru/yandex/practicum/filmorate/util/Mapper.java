@@ -1,9 +1,6 @@
 package ru.yandex.practicum.filmorate.util;
 
-import ru.yandex.practicum.filmorate.dao.DirectorDao;
-import ru.yandex.practicum.filmorate.dao.GenreDao;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
-import ru.yandex.practicum.filmorate.dao.MpaDao;
+import ru.yandex.practicum.filmorate.dao.*;
 import ru.yandex.practicum.filmorate.model.*;
 
 import java.sql.ResultSet;
@@ -46,6 +43,38 @@ public class Mapper {
         return new Film(id, name, description, releaseDate, duration, rate, genres, mpa, director);
     }
 
+    public static Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
+        int id = rs.getInt("genre_id");
+        String name = rs.getString("genre_name");
+
+        return new Genre(id, name);
+    }
+
+    public static Mpa makeMpa(ResultSet rs, int rowNum) throws SQLException {
+        int id = rs.getInt("mpa_id");
+        String name = rs.getString("mpa_name");
+
+        return new Mpa(id, name);
+    }
+
+    public static Director makeDirector(ResultSet rs, int rowNum) throws SQLException {
+        int id = rs.getInt("director_id");
+        String name = rs.getString("director_name");
+
+        return new Director(id, name);
+    }
+
+    public static Review makeReview(ResultSet rs, int rowNum, ReviewDao reviewDao) throws SQLException {
+        int id = rs.getInt("review_id");
+        String content = rs.getString("content");
+        Boolean isPositive = rs.getBoolean("is_positive");
+        int userId = rs.getInt("user_id");
+        int filmId = rs.getInt("film_id");
+        int useful = reviewDao.getReviewUsefulRating(id);
+
+        return new Review(id, content, isPositive, userId, filmId, useful);
+    }
+
     public static Map<String,Object> userToMap(User user) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("email", user.getEmail());
@@ -67,24 +96,14 @@ public class Mapper {
         return filmMap;
     }
 
-    public static Genre makeGenre(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("genre_id");
-        String name = rs.getString("genre_name");
+    public static Map<String, Object> reviewToMap(Review review) {
+        Map<String, Object> reviewMap = new HashMap<>();
+        reviewMap.put("content", review.getContent());
+        reviewMap.put("is_positive", review.getIsPositive());
+        reviewMap.put("user_id", review.getUserId());
+        reviewMap.put("film_id", review.getFilmId());
+        reviewMap.put("useful", review.getUseful());
 
-        return new Genre(id, name);
-    }
-
-    public static Mpa makeMpa(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("mpa_id");
-        String name = rs.getString("mpa_name");
-
-        return new Mpa(id, name);
-    }
-
-    public static Director makeDirector(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("director_id");
-        String name = rs.getString("director_name");
-
-        return new Director(id, name);
+        return reviewMap;
     }
 }
