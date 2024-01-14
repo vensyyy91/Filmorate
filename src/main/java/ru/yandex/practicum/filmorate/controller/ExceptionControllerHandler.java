@@ -50,7 +50,8 @@ public class ExceptionControllerHandler {
     }
 
     @ExceptionHandler({UserNotFoundException.class, FilmNotFoundException.class,
-            GenreNotFoundException.class, MpaNotFoundException.class, DirectorNotFoundException.class})
+            GenreNotFoundException.class, MpaNotFoundException.class,
+            DirectorNotFoundException.class, ReviewNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Response handleNotFoundException(RuntimeException ex) {
         log.error(ex.getMessage());
