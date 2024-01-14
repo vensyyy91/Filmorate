@@ -3,9 +3,12 @@ package ru.yandex.practicum.filmorate.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.EventDao;
 import ru.yandex.practicum.filmorate.dao.FilmDao;
 import ru.yandex.practicum.filmorate.dao.ReviewDao;
 import ru.yandex.practicum.filmorate.dao.UserDao;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 
@@ -20,12 +23,14 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewDao reviewDao;
     private final UserDao userDao;
     private final FilmDao filmDao;
+    private final EventDao eventDao;
 
     @Override
     public Review addReview(Review review) {
         userDao.getById(review.getUserId()); // проверка наличия пользователя
         filmDao.getById(review.getFilmId()); // проверка наличия фильма
         Review newReview = reviewDao.save(review);
+        eventDao.writeEvent(newReview.getUserId(), EventType.REVIEW, Operation.ADD, newReview.getReviewId());
         log.info("Добавлен отзыв от пользователя с id={} фильму с id={}: id={}, content={}",
                 newReview.getUserId(),
                 newReview.getFilmId(),
@@ -41,6 +46,7 @@ public class ReviewServiceImpl implements ReviewService {
         userDao.getById(review.getUserId()); // проверка наличия пользователя
         filmDao.getById(review.getFilmId()); // проверка наличия фильма
         Review newReview = reviewDao.update(review);
+        eventDao.writeEvent(newReview.getUserId(), EventType.REVIEW, Operation.UPDATE, newReview.getReviewId());
         log.info("Обновлен отзыв от пользователя с id={} фильму с id={}: id={}, content={}",
                 newReview.getUserId(),
                 newReview.getFilmId(),
@@ -52,8 +58,10 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void deleteReview(int id) {
-        reviewDao.getById(id); // проверка наличия отзыва
+        Review review = reviewDao.getById(id);
+        int userId = review.getUserId();
         reviewDao.delete(id);
+        eventDao.writeEvent(userId, EventType.REVIEW, Operation.REMOVE, id);
         log.info("Удален отзыв с id={}", id);
     }
 
