@@ -95,7 +95,7 @@ public class ReviewServiceImpl implements ReviewService {
     public void deleteLike(int id, int userId) {
         userDao.getById(userId); // проверка наличия пользователя
         reviewDao.getById(id); // проверка наличия отзыва
-        reviewDao.deleteLike(id, userId);
+        reviewDao.deleteLikeOrDislike(id, userId);
         log.info("Пользователем с id={} удален лайк отзыву с id={}", userId, id);
     }
 
@@ -103,7 +103,7 @@ public class ReviewServiceImpl implements ReviewService {
     public void deleteDislike(int id, int userId) {
         userDao.getById(userId); // проверка наличия пользователя
         reviewDao.getById(id); // проверка наличия отзыва
-        reviewDao.deleteDislike(id, userId);
+        reviewDao.deleteLikeOrDislike(id, userId);
         log.info("Пользователем с id={} удален дизлайк отзыву с id={}", userId, id);
     }
 }

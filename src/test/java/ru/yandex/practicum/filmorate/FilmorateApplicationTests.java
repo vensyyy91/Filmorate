@@ -30,6 +30,7 @@ class FilmorateApplicationTests {
 	private final LikesDao likesDao;
 	private final FriendsDao friendsDao;
 	private final DirectorDao directorDao;
+	private final ReviewDao reviewDao;
 	private static final Genre GENRE_COMEDY = new Genre(1, "Комедия");
 	private static final Genre GENRE_DRAMA = new Genre(2, "Драма");
 	private static final Genre GENRE_CARTOON = new Genre(3, "Мультфильм");
@@ -61,6 +62,12 @@ class FilmorateApplicationTests {
 				"VALUES (1, 2), (1, 3), (2, 3), (3, 1)";
 		String sqlAddDirectors = "INSERT INTO directors (director_name) VALUES ('director1'), ('director2')";
 		String sqlAddFilmDirectors = "INSERT INTO film_director (film_id, director_id) VALUES (1, 1), (2, 1), (2, 2)";
+		String sqlAddReviews = "INSERT INTO reviews (content, is_positive, user_id, film_id) VALUES " +
+				"('very good film', true, 1, 2), " +
+				"('the film is too bad', false, 2, 2), " +
+				"('the film is nice', true, 3, 3)";
+		String sqlAddReviewLikes = "INSERT INTO review_like (user_id, review_id, is_positive) " +
+				"VALUES (2, 1, false), (1, 3, true), (2, 3, true)";
 		jdbcTemplate.update(sqlAddFilms);
 		jdbcTemplate.update(sqlAddUsers);
 		jdbcTemplate.update(sqlAddGenres);
@@ -68,6 +75,8 @@ class FilmorateApplicationTests {
 		jdbcTemplate.update(sqlAddFriends);
 		jdbcTemplate.update(sqlAddDirectors);
 		jdbcTemplate.update(sqlAddFilmDirectors);
+		jdbcTemplate.update(sqlAddReviews);
+		jdbcTemplate.update(sqlAddReviewLikes);
 	}
 
 	@Test
@@ -811,5 +820,136 @@ class FilmorateApplicationTests {
 		List<Film> recommendations = filmDao.getRecommendations(4);
 
 		assertThat(recommendations).hasSize(0);
+	}
+
+	@Test
+	public void getAllReviews() {
+		List<Review> reviews = reviewDao.getAll(null, 10);
+
+		assertThat(reviews).hasSize(3);
+		assertThat(reviews.get(0)).isEqualTo(new Review(1, "very good film", true, 1, 2, -1));
+		assertThat(reviews.get(1)).isEqualTo(new Review(2, "the film is too bad", false, 2, 2, 0));
+		assertThat(reviews.get(2)).isEqualTo(new Review(3, "the film is nice", true, 3, 3, 2));
+	}
+
+	@Test
+	public void getAllReviewsWhenEmpty() {
+		jdbcTemplate.update("DELETE FROM reviews");
+		List<Review> reviews = reviewDao.getAll(null, 10);
+
+		assertThat(reviews).hasSize(0);
+	}
+
+	@Test
+	public void getAllReviewsWithSmallCount() {
+		List<Review> reviews = reviewDao.getAll(null, 2);
+
+		assertThat(reviews).hasSize(2);
+		assertThat(reviews.get(0)).isEqualTo(new Review(1, "very good film", true, 1, 2, -1));
+		assertThat(reviews.get(1)).isEqualTo(new Review(2, "the film is too bad", false, 2, 2, 0));
+	}
+
+	@Test
+	public void getAllReviewsWithFilmId() {
+		List<Review> reviews = reviewDao.getAll(2, 10);
+
+		assertThat(reviews).hasSize(2);
+		assertThat(reviews.get(0)).isEqualTo(new Review(1, "very good film", true, 1, 2, -1));
+		assertThat(reviews.get(1)).isEqualTo(new Review(2, "the film is too bad", false, 2, 2, 0));
+	}
+
+	@Test
+	public void getReviewById() {
+		Review review = reviewDao.getById(1);
+
+		assertThat(review).isNotNull();
+		assertThat(review).hasFieldOrPropertyWithValue("reviewId", 1);
+	}
+
+	@Test
+	public void getReviewByNonExistingId() {
+		assertThatThrownBy(() -> reviewDao.getById(999)).hasMessage("Обзор с id=999 не найден.");
+	}
+
+    @Test
+	public void addReview() {
+		Review review = new Review("bad film", false, 1, 1);
+		Review reviewReturned = reviewDao.save(review);
+		Review reviewFromDb = reviewDao.getById(4);
+
+		assertThat(reviewReturned).isNotNull();
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("reviewId", 4);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("useful", 0);
+		assertThat(reviewFromDb).isNotNull();
+		assertThat(reviewFromDb).isEqualTo(reviewReturned);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("reviewId", 4);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("content", "bad film");
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("isPositive", false);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("filmId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("useful", 0);
+	}
+
+	@Test
+	public void updateReview() {
+		Review updateReview = new Review(1, "not very good film", false, 1, 2, 0);
+		Review reviewReturned = reviewDao.update(updateReview);
+		Review reviewFromDb = reviewDao.getById(1);
+
+		assertThat(reviewReturned).isNotNull();
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("reviewId", 1);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("content", "not very good film");
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("isPositive", false);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("filmId", 2);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("useful", -1);
+		assertThat(reviewFromDb).isNotNull();
+		assertThat(reviewFromDb).isEqualTo(reviewReturned);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("reviewId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("content", "not very good film");
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("isPositive", false);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("filmId", 2);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("useful", -1);
+	}
+
+	@Test
+	public void deleteReview() {
+		reviewDao.delete(1);
+		List<Review> reviews = reviewDao.getAll(null, 10);
+
+		assertThatThrownBy(() -> reviewDao.getById(1)).hasMessage("Обзор с id=1 не найден.");
+		assertThat(reviews).hasSize(2);
+	}
+
+	@Test
+	public void addReviewLike() {
+		reviewDao.addLike(2, 3);
+		Review review = reviewDao.getById(2);
+
+		assertThat(review).hasFieldOrPropertyWithValue("reviewId", 2);
+		assertThat(review).hasFieldOrPropertyWithValue("useful", 1);
+	}
+
+	@Test
+	public void addReviewDislike() {
+		reviewDao.addDislike(2, 3);
+		Review review = reviewDao.getById(2);
+
+		assertThat(review).hasFieldOrPropertyWithValue("reviewId", 2);
+		assertThat(review).hasFieldOrPropertyWithValue("useful", -1);
+	}
+
+	@Test
+	public void deleteReviewLikeOrDislike() {
+		reviewDao.deleteLikeOrDislike(1, 2);
+		reviewDao.deleteLikeOrDislike(3, 1);
+		Review review1 = reviewDao.getById(1);
+		Review review3 = reviewDao.getById(3);
+
+		assertThat(review1).hasFieldOrPropertyWithValue("reviewId", 1);
+		assertThat(review1).hasFieldOrPropertyWithValue("useful", 0);
+		assertThat(review3).hasFieldOrPropertyWithValue("reviewId", 3);
+		assertThat(review3).hasFieldOrPropertyWithValue("useful", 1);
 	}
 }

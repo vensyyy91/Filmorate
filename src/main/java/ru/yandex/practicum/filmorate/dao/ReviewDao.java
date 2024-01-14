@@ -19,9 +19,7 @@ public interface ReviewDao {
 
     void addDislike(int id, int userId);
 
-    void deleteLike(int id, int userId);
-
-    void deleteDislike(int id, int userId);
+    void deleteLikeOrDislike(int id, int userId);
 
     int getReviewUsefulRating(int id);
 }
