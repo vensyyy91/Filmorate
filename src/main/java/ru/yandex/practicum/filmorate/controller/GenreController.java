@@ -26,7 +26,7 @@ public class GenreController {
 
     @GetMapping("/{id}")
     public Genre get(@PathVariable int id) {
-        log.info("Получен запрос GET /genres/" + id);
+        log.info("Получен запрос GET /genres/{}", id);
         return service.getGenreById(id);
     }
 }

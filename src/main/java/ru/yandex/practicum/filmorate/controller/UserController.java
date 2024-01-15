@@ -3,6 +3,8 @@ package ru.yandex.practicum.filmorate.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -14,53 +16,71 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class UserController {
-    private final UserService service;
+    private final UserService userService;
 
     @GetMapping
     public List<User> getAll() {
         log.info("Получен запрос GET /users");
-        return service.getAllUsers();
+        return userService.getAllUsers();
     }
 
     @GetMapping("/{id}")
     public User get(@PathVariable int id) {
-        log.info("Получен запрос GET /users/" + id);
-        return service.getUser(id);
+        log.info("Получен запрос GET /users/{}", id);
+        return userService.getUser(id);
     }
 
     @PostMapping
     public User add(@Valid @RequestBody User user) {
         log.info("Получен запрос POST /users");
-        return service.addUser(user);
+        return userService.addUser(user);
     }
 
     @PutMapping
     public User update(@Valid @RequestBody User user) {
         log.info("Получен запрос PUT /users");
-        return service.updateUser(user);
+        return userService.updateUser(user);
+    }
+
+    @DeleteMapping("/{userId}")
+    public void delete(@PathVariable int userId) {
+        log.info("Получен запрос DELETE /users/{}", userId);
+        userService.deleteUser(userId);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
     public void addFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Получен запрос PUT /users/{}/friends/{}", id, friendId);
-        service.addFriend(id, friendId);
+        userService.addFriend(id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
     public void deleteFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Получен запрос DELETE /users/{}/friends/{}", id, friendId);
-        service.deleteFriend(id, friendId);
+        userService.deleteFriend(id, friendId);
     }
 
     @GetMapping("/{id}/friends")
     public List<User> getAllFriends(@PathVariable int id) {
         log.info("Получен запрос GET /users/{}/friends", id);
-        return service.getAllFriends(id);
+        return userService.getAllFriends(id);
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
     public List<User> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
         log.info("Получен запрос GET /users/{}/friends/common/{}", id, otherId);
-        return service.getCommonFriends(id, otherId);
+        return userService.getCommonFriends(id, otherId);
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public List<Film> getRecommendations(@PathVariable int id) {
+        log.info("Получен запрос GET /users/{}/recommendations", id);
+        return userService.getRecommendations(id);
+    }
+
+    @GetMapping("/{id}/feed")
+    public List<Event> getUserFeed(@PathVariable int id) {
+        log.info("Получен запрос GET /users/{}/feed", id);
+        return userService.getUserFeed(id);
     }
 }

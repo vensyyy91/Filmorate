@@ -8,21 +8,14 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
-import ru.yandex.practicum.filmorate.dao.FriendsDao;
-import ru.yandex.practicum.filmorate.dao.GenreDao;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
-import ru.yandex.practicum.filmorate.dao.MpaDao;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.repository.FilmDbStorage;
-import ru.yandex.practicum.filmorate.repository.UserDbStorage;
+import ru.yandex.practicum.filmorate.dao.*;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,12 +26,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class FilmorateApplicationTests {
 	private final JdbcTemplate jdbcTemplate;
-	private final FilmDbStorage filmStorage;
-	private final UserDbStorage userStorage;
+	private final FilmDao filmDao;
+	private final UserDao userDao;
 	private final GenreDao genreDao;
 	private final MpaDao mpaDao;
 	private final LikesDao likesDao;
 	private final FriendsDao friendsDao;
+	private final DirectorDao directorDao;
+	private final ReviewDao reviewDao;
+	private final EventDao eventDao;
 	private static final Genre GENRE_COMEDY = new Genre(1, "Комедия");
 	private static final Genre GENRE_DRAMA = new Genre(2, "Драма");
 	private static final Genre GENRE_CARTOON = new Genre(3, "Мультфильм");
@@ -68,42 +64,55 @@ class FilmorateApplicationTests {
 				"VALUES (1, 2), (2, 1), (2, 2), (3, 1), (3, 2), (3, 3)";
 		String sqlAddFriends = "INSERT INTO friends (user_id, friend_id) " +
 				"VALUES (1, 2), (1, 3), (2, 3), (3, 1)";
+		String sqlAddDirectors = "INSERT INTO directors (director_name) VALUES ('director1'), ('director2')";
+		String sqlAddFilmDirectors = "INSERT INTO film_director (film_id, director_id) VALUES (1, 1), (2, 1), (2, 2)";
+		String sqlAddReviews = "INSERT INTO reviews (content, is_positive, user_id, film_id) VALUES " +
+				"('very good film', true, 1, 2), " +
+				"('the film is too bad', false, 2, 2), " +
+				"('the film is nice', true, 3, 3)";
+		String sqlAddReviewLikes = "INSERT INTO review_like (user_id, review_id, is_positive) " +
+				"VALUES (2, 1, false), (1, 3, true), (2, 3, true)";
 		jdbcTemplate.update(sqlAddFilms);
 		jdbcTemplate.update(sqlAddUsers);
 		jdbcTemplate.update(sqlAddGenres);
 		jdbcTemplate.update(sqlAddLikes);
 		jdbcTemplate.update(sqlAddFriends);
+		jdbcTemplate.update(sqlAddDirectors);
+		jdbcTemplate.update(sqlAddFilmDirectors);
+		jdbcTemplate.update(sqlAddReviews);
+		jdbcTemplate.update(sqlAddReviewLikes);
 	}
 
 	@Test
 	public void getAllFilms() {
-		List<Film> films = filmStorage.getAll();
+		List<Film> films = filmDao.getAll();
 
 		assertThat(films).hasSize(3);
 		assertThat(films.get(0)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 1,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 		assertThat(films.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 		assertThat(films.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 	}
 
 	@Test
 	public void getAllFilmsWhenEmpty() {
 		jdbcTemplate.update("DELETE FROM film_genre");
+		jdbcTemplate.update("DELETE FROM film_director");
 		jdbcTemplate.update("DELETE FROM likes");
 		jdbcTemplate.update("DELETE FROM films");
-		List<Film> films = filmStorage.getAll();
+		List<Film> films = filmDao.getAll();
 
 		assertThat(films).hasSize(0);
 	}
 
 	@Test
 	public void getFilmById() {
-		Film film = filmStorage.getById(1);
+		Film film = filmDao.getById(1);
 
 		assertThat(film).isNotNull();
 		assertThat(film).hasFieldOrPropertyWithValue("id", 1);
@@ -111,7 +120,7 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getFilmByNonExistentId() {
-		assertThatThrownBy(() -> filmStorage.getById(999)).hasMessage("Фильм с id=999 не найден.");
+		assertThatThrownBy(() -> filmDao.getById(999)).hasMessage("Фильм с id=999 не найден.");
 	}
 
 	@Test
@@ -119,8 +128,8 @@ class FilmorateApplicationTests {
 		Film film = new Film("film4", "fourth test film",
 				LocalDate.of(2010, 8, 20), 140,
 				Set.of(GENRE_COMEDY, GENRE_CARTOON), MPA_NC_17);
-		Film filmReturned = filmStorage.save(film);
-		Film filmFromDb = filmStorage.getById(4);
+		Film filmReturned = filmDao.save(film);
+		Film filmFromDb = filmDao.getById(4);
 
 		assertThat(filmReturned).isNotNull();
 		assertThat(filmReturned).hasFieldOrPropertyWithValue("id", 4);
@@ -139,8 +148,8 @@ class FilmorateApplicationTests {
 		Film film = new Film("film4", "fourth test film",
 				LocalDate.of(2010, 8, 20), 140,
 				new TreeSet<>(List.of(GENRE_COMEDY, GENRE_CARTOON, GENRE_COMEDY)), MPA_NC_17);
-		Film filmReturned = filmStorage.save(film);
-		Film filmFromDb = filmStorage.getById(4);
+		Film filmReturned = filmDao.save(film);
+		Film filmFromDb = filmDao.getById(4);
 
 		assertThat(filmReturned.getGenres()).hasSize(2);
 		assertThat(filmReturned.getGenres()).contains(GENRE_COMEDY, GENRE_CARTOON);
@@ -153,8 +162,8 @@ class FilmorateApplicationTests {
 		Film updatedFilm = new Film(1, "updatedFilm1", "first test film updated",
 				LocalDate.of(1990, 9, 10), 150,
 				Set.of(GENRE_COMEDY, GENRE_CARTOON), MPA_PG_13);
-		Film filmReturned = filmStorage.save(updatedFilm);
-		Film filmFromDb = filmStorage.getById(1);
+		Film filmReturned = filmDao.save(updatedFilm);
+		Film filmFromDb = filmDao.getById(1);
 
 		assertThat(filmReturned).isNotNull();
 		assertThat(filmReturned).hasFieldOrPropertyWithValue("id", 1);
@@ -176,8 +185,8 @@ class FilmorateApplicationTests {
 		Film updatedFilm = new Film(3, "updatedFilm3", "third test film",
 				LocalDate.of(2008, 10, 1), 180,
 				Set.of(GENRE_DRAMA, GENRE_THRILLER), MPA_R);
-		Film filmReturned = filmStorage.save(updatedFilm);
-		Film filmFromDb = filmStorage.getById(3);
+		Film filmReturned = filmDao.save(updatedFilm);
+		Film filmFromDb = filmDao.getById(3);
 
 		assertThat(filmReturned.getGenres()).hasSize(2);
 		assertThat(filmReturned.getGenres()).contains(GENRE_DRAMA, GENRE_THRILLER);
@@ -190,8 +199,8 @@ class FilmorateApplicationTests {
 		Film updatedFilm = new Film(1, "updatedFilm1", "first test film updated",
 				LocalDate.of(1990, 9, 10), 150,
 				new TreeSet<>(List.of(GENRE_COMEDY, GENRE_CARTOON, GENRE_CARTOON, GENRE_COMEDY)), MPA_PG_13);
-		Film filmReturned = filmStorage.save(updatedFilm);
-		Film filmFromDb = filmStorage.getById(1);
+		Film filmReturned = filmDao.save(updatedFilm);
+		Film filmFromDb = filmDao.getById(1);
 
 		assertThat(filmReturned.getGenres()).hasSize(2);
 		assertThat(filmReturned.getGenres()).contains(GENRE_COMEDY, GENRE_CARTOON);
@@ -200,8 +209,19 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
+	public void deleteFilm() {
+		filmDao.delete(1);
+		List<Film> films = filmDao.getAll();
+		List<Film> top = filmDao.getTop(5, null, null);
+
+		assertThatThrownBy(() -> filmDao.getById(1)).hasMessage("Фильм с id=1 не найден.");
+		assertThat(films).hasSize(2);
+		assertThat(top).hasSize(2);
+	}
+
+	@Test
 	public void getAllUsers() {
-		List<User> users = userStorage.getAll();
+		List<User> users = userDao.getAll();
 
 		assertThat(users).hasSize(3);
 		assertThat(users.get(0)).isEqualTo(new User(1, "1@yandex.ru", "user1", "first",
@@ -217,14 +237,14 @@ class FilmorateApplicationTests {
 		jdbcTemplate.update("DELETE FROM friends");
 		jdbcTemplate.update("DELETE FROM likes");
 		jdbcTemplate.update("DELETE FROM users");
-		List<User> users = userStorage.getAll();
+		List<User> users = userDao.getAll();
 
 		assertThat(users).hasSize(0);
 	}
 
 	@Test
 	public void getUserById() {
-		User user = userStorage.getById(1);
+		User user = userDao.getById(1);
 
 		assertThat(user).isNotNull();
 		assertThat(user).hasFieldOrPropertyWithValue("id", 1);
@@ -232,15 +252,15 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getUserByNonExistentId() {
-		assertThatThrownBy(() -> userStorage.getById(999)).hasMessage("Пользователь с id=999 не найден.");
+		assertThatThrownBy(() -> userDao.getById(999)).hasMessage("Пользователь с id=999 не найден.");
 	}
 
 	@Test
 	public void addUser() {
 		User user = new User("4@yandex.ru", "user4", "fourth",
 				LocalDate.of(1998, 7, 16));
-		User userReturned = userStorage.save(user);
-		User userFromDb = userStorage.getById(4);
+		User userReturned = userDao.save(user);
+		User userFromDb = userDao.getById(4);
 
 		assertThat(userReturned).isNotNull();
 		assertThat(userReturned).hasFieldOrPropertyWithValue("id", 4);
@@ -254,11 +274,11 @@ class FilmorateApplicationTests {
 	public void updateUser() {
 		User user = new User("4@yandex.ru", "user4", "fourth",
 				LocalDate.of(1998, 7, 16));
-		userStorage.save(user);
+		userDao.save(user);
 		User updatedUser = new User(4, "4@google.com", "user4", "the fourth",
 				LocalDate.of(1998, 7, 16));
-		User userReturned = userStorage.save(updatedUser);
-		User userFromDb = userStorage.getById(4);
+		User userReturned = userDao.save(updatedUser);
+		User userFromDb = userDao.getById(4);
 
 		assertThat(userReturned).isNotNull();
 		assertThat(userReturned).hasFieldOrPropertyWithValue("id", 4);
@@ -269,6 +289,19 @@ class FilmorateApplicationTests {
 		assertThat(userFromDb).hasFieldOrPropertyWithValue("id", 4);
 		assertThat(userFromDb).hasFieldOrPropertyWithValue("email", "4@google.com");
 		assertThat(userReturned).hasFieldOrPropertyWithValue("name", "the fourth");
+	}
+
+	@Test
+	public void deleteUser() {
+		userDao.delete(1);
+		List<User> friends = friendsDao.getAllById(3);
+		Film film2 = filmDao.getById(2);
+		Film film3 = filmDao.getById(3);
+
+		assertThatThrownBy(() -> userDao.getById(1)).hasMessage("Пользователь с id=1 не найден.");
+		assertThat(friends).hasSize(0);
+		assertThat(film2).hasFieldOrPropertyWithValue("rate", 1);
+		assertThat(film3).hasFieldOrPropertyWithValue("rate", 2);
 	}
 
 	@Test
@@ -338,6 +371,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void getAllMpaWhenEmpty() {
 		jdbcTemplate.update("DELETE FROM film_genre");
+		jdbcTemplate.update("DELETE FROM film_director");
 		jdbcTemplate.update("DELETE FROM likes");
 		jdbcTemplate.update("DELETE FROM films");
 		jdbcTemplate.update("DELETE FROM mpa");
@@ -380,7 +414,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void addLike() {
 		likesDao.save(1, 3);
-		Film film = filmStorage.getById(1);
+		Film film = filmDao.getById(1);
 		List<Integer> likes = likesDao.getAllByFilmId(1);
 
 		assertThat(film).hasFieldOrPropertyWithValue("rate", 2);
@@ -390,7 +424,7 @@ class FilmorateApplicationTests {
 	@Test
 	public void deleteLike() {
 		likesDao.delete(1, 2);
-		Film film = filmStorage.getById(1);
+		Film film = filmDao.getById(1);
 		List<Integer> likes = likesDao.getAllByFilmId(1);
 
 		assertThat(film).hasFieldOrPropertyWithValue("rate", 0);
@@ -399,65 +433,100 @@ class FilmorateApplicationTests {
 
 	@Test
 	public void getTopLikesAllFilms() {
-		List<Film> topLikes = likesDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 1,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 	}
 
 	@Test
 	public void getTopLikesFewerThanFilms() {
-		List<Film> topLikes = likesDao.getTop(2);
+		List<Film> topLikes = filmDao.getTop(2, null, null);
 
 		assertThat(topLikes).hasSize(2);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 2,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 	}
 
 	@Test
 	public void getTopLikesWhenSomeWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes WHERE film_id IN (1, 2)");
-		List<Film> topLikes = likesDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 3,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 0,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 0,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 	}
 
 	@Test
 	public void getTopLikesWhenAllWithNoLikes() {
 		jdbcTemplate.update("DELETE FROM likes");
-		List<Film> topLikes = likesDao.getTop(10);
+		List<Film> topLikes = filmDao.getTop(10, null, null);
 
 		assertThat(topLikes).hasSize(3);
 		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
 				LocalDate.of(1990, 9, 10), 150, 0,
-				Set.of(GENRE_COMEDY), MPA_PG));
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
 		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
 				LocalDate.of(2005, 12, 4), 120, 0,
-				Set.of(GENRE_THRILLER), MPA_G));
+				Set.of(GENRE_THRILLER), MPA_G, Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 		assertThat(topLikes.get(2)).isEqualTo(new Film(3, "film3", "third test film",
 				LocalDate.of(2008, 10, 1), 180, 0,
-				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R));
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+	}
+
+	@Test
+	public void getTopLikesWithGenreId() {
+		List<Film> topLikes = filmDao.getTop(10, 4, null);
+
+		assertThat(topLikes).hasSize(2);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(3, "film3", "third test film",
+				LocalDate.of(2008, 10, 1), 180, 3,
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+		assertThat(topLikes.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getTopLikesWithYear() {
+		List<Film> topLikes = filmDao.getTop(10, null, 1990);
+
+		assertThat(topLikes).hasSize(1);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void getTopLikesWithGenreIdAndYear() {
+		List<Film> topLikes = filmDao.getTop(10, 4, 2005);
+
+		assertThat(topLikes).hasSize(1);
+		assertThat(topLikes.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
 	}
 
 	@Test
@@ -523,5 +592,394 @@ class FilmorateApplicationTests {
 		List<User> commonFriends = friendsDao.getCommonById(1, 2);
 
 		assertThat(commonFriends).hasSize(0);
+	}
+
+	@Test
+	public void getAllDirectors() {
+		List<Director> directors = directorDao.getAll();
+
+		assertThat(directors).hasSize(2);
+		assertThat(directors.get(0)).isEqualTo(new Director(1, "director1"));
+		assertThat(directors.get(1)).isEqualTo(new Director(2, "director2"));
+	}
+
+	@Test
+	public void getAllDirectorsWhenEmpty() {
+		jdbcTemplate.update("DELETE FROM directors");
+		List<Director> directors = directorDao.getAll();
+
+		assertThat(directors).hasSize(0);
+	}
+
+	@Test
+	public void getDirectorById() {
+		Director director = directorDao.getById(1);
+
+		assertThat(director).isNotNull();
+		assertThat(director).hasFieldOrPropertyWithValue("id", 1);
+	}
+
+	@Test
+	public void getDirectorByNonExistingId() {
+		assertThatThrownBy(() -> directorDao.getById(999)).hasMessage("Режиссер с id=999 не найден.");
+	}
+
+	@Test
+	public void addDirector() {
+		Director director = new Director(0, "director3");
+		Director directorReturned = directorDao.save(director);
+		Director directorFromDb = directorDao.getById(3);
+
+		assertThat(directorReturned).isNotNull();
+		assertThat(directorReturned).hasFieldOrPropertyWithValue("id", 3);
+		assertThat(directorFromDb).isNotNull();
+		assertThat(directorFromDb).isEqualTo(directorReturned);
+		assertThat(directorFromDb).hasFieldOrPropertyWithValue("name", "director3");
+	}
+
+	@Test
+	public void updateDirector() {
+		Director updatedDirector = new Director(1, "updated director1");
+		Director directorReturned = directorDao.update(updatedDirector);
+		Director directorFromDb = directorDao.getById(1);
+
+		assertThat(directorReturned).isNotNull();
+		assertThat(directorReturned).hasFieldOrPropertyWithValue("id", 1);
+		assertThat(directorReturned).hasFieldOrPropertyWithValue("name", "updated director1");
+		assertThat(directorFromDb).isNotNull();
+		assertThat(directorFromDb).isEqualTo(directorReturned);
+		assertThat(directorFromDb).hasFieldOrPropertyWithValue("name", "updated director1");
+	}
+
+	@Test
+	public void deleteDirector() {
+		directorDao.delete(2);
+		List<Director> directors = directorDao.getAll();
+
+		assertThat(directors).hasSize(1);
+		assertThat(directors.get(0)).hasFieldOrPropertyWithValue("id", 1);
+		assertThatThrownBy(() -> directorDao.getById(2)).hasMessage("Режиссер с id=2 не найден.");
+	}
+
+	@Test
+	public void getAllByFilmId() {
+		List<Director> directors = new ArrayList<>(directorDao.getAllByFilmId(1));
+
+		assertThat(directors).hasSize(1);
+		assertThat(directors.get(0)).hasFieldOrPropertyWithValue("id", 1);
+		assertThat(directors.get(0)).hasFieldOrPropertyWithValue("name", "director1");
+	}
+
+	@Test
+	public void getAllByFilmIdWhenEmpty() {
+		List<Director> directors = new ArrayList<>(directorDao.getAllByFilmId(3));
+
+		assertThat(directors).hasSize(0);
+	}
+
+	@Test
+	public void getDirectorFilmsWithNoSorting() {
+		List<Film> films = filmDao.getDirectorFilms(1, null);
+
+		assertThat(films).hasSize(2);
+		assertThat(films).contains(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+		assertThat(films).contains(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getDirectorFilmsWithSortingByYear() {
+		List<Film> films = filmDao.getDirectorFilms(1, "year");
+
+		assertThat(films).hasSize(2);
+		assertThat(films.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+		assertThat(films.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getDirectorFilmsWithSortingByLikes() {
+		List<Film> films = filmDao.getDirectorFilms(1, "likes");
+
+		assertThat(films).hasSize(2);
+		assertThat(films.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+		assertThat(films.get(1)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void getDirectorFilmsWithUnknownSorting() {
+		assertThatThrownBy(() -> filmDao.getDirectorFilms(1, "name"))
+				.hasMessage("Параметр сортировки должен быть year или likes");
+	}
+
+	@Test
+	public void getCommonFilms() {
+		List<Film> commonFilms = filmDao.getCommonFilms(1, 2);
+
+		assertThat(commonFilms).hasSize(2);
+		assertThat(commonFilms.get(0)).isEqualTo(new Film(3, "film3", "third test film",
+				LocalDate.of(2008, 10, 1), 180, 3,
+				Set.of(GENRE_DRAMA, GENRE_THRILLER, GENRE_ACTION), MPA_R, Collections.emptySet()));
+		assertThat(commonFilms.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getCommonFilmsWhenEmpty() {
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1994-01-22')");
+		List<Film> commonFilms = filmDao.getCommonFilms(1, 4);
+
+		assertThat(commonFilms).hasSize(0);
+	}
+
+	@Test
+	public void searchByTitle() {
+		List<Film> result = filmDao.search("1", "title");
+
+		assertThat(result).hasSize(1);
+		assertThat(result.get(0)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void searchByDirector() {
+		List<Film> result = filmDao.search("1", "director");
+
+		assertThat(result).hasSize(2);
+		assertThat(result.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+		assertThat(result.get(1)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.singleton(new Director(1, "director1"))));
+	}
+
+	@Test
+	public void searchByDirectorAndTitle() {
+		jdbcTemplate.update("DELETE FROM film_director WHERE film_id = 1");
+		List<Film> result = filmDao.search("1", "director,title");
+
+		assertThat(result).hasSize(2);
+		assertThat(result.get(0)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+		assertThat(result.get(1)).isEqualTo(new Film(1, "film1", "first test film",
+				LocalDate.of(1990, 9, 10), 150, 1,
+				Set.of(GENRE_COMEDY), MPA_PG, Collections.emptySet()));
+	}
+
+	@Test
+	public void getRecommendations() {
+		jdbcTemplate.update("INSERT INTO films (name, description, release_date, duration, mpa_id) " +
+				"VALUES ('film4', 'fourth test film', '2000-10-15', 100, 3)");
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1995-10-12')");
+		jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (1, 4), (3, 4), (4, 3)");
+		List<Film> recommendations = filmDao.getRecommendations(4);
+
+		assertThat(recommendations).hasSize(2);
+		assertThat(recommendations.get(0)).isEqualTo(new Film(4, "film4", "fourth test film",
+				LocalDate.of(2000, 10, 15), 100, 1,
+				Collections.emptySet(), MPA_PG_13, Collections.emptySet()));
+		assertThat(recommendations.get(1)).isEqualTo(new Film(2, "film2", "second test film",
+				LocalDate.of(2005, 12, 4), 120, 2,
+				Set.of(GENRE_THRILLER), MPA_G,
+				Set.of(new Director(1, "director1"), new Director(2, "director2"))));
+	}
+
+	@Test
+	public void getRecommendationsWhenNoLikes() {
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1995-10-12')");
+		List<Film> recommendations = filmDao.getRecommendations(4);
+
+		assertThat(recommendations).hasSize(0);
+	}
+
+	@Test
+	public void getRecommendationsWhenNoCommonLikes() {
+		jdbcTemplate.update("DELETE FROM likes WHERE film_id = 1");
+		jdbcTemplate.update("INSERT INTO users (email, login, name, birthday) " +
+				"VALUES ('4@yandex.ru', 'user4', 'fourth', '1995-10-12')");
+		jdbcTemplate.update("INSERT INTO likes (film_id, user_id) VALUES (1, 4)");
+		List<Film> recommendations = filmDao.getRecommendations(4);
+
+		assertThat(recommendations).hasSize(0);
+	}
+
+	@Test
+	public void getAllReviews() {
+		List<Review> reviews = reviewDao.getAll(null, 10);
+
+		assertThat(reviews).hasSize(3);
+		assertThat(reviews.get(0)).isEqualTo(new Review(1, "very good film", true, 1, 2, -1));
+		assertThat(reviews.get(1)).isEqualTo(new Review(2, "the film is too bad", false, 2, 2, 0));
+		assertThat(reviews.get(2)).isEqualTo(new Review(3, "the film is nice", true, 3, 3, 2));
+	}
+
+	@Test
+	public void getAllReviewsWhenEmpty() {
+		jdbcTemplate.update("DELETE FROM reviews");
+		List<Review> reviews = reviewDao.getAll(null, 10);
+
+		assertThat(reviews).hasSize(0);
+	}
+
+	@Test
+	public void getAllReviewsWithSmallCount() {
+		List<Review> reviews = reviewDao.getAll(null, 2);
+
+		assertThat(reviews).hasSize(2);
+		assertThat(reviews.get(0)).isEqualTo(new Review(1, "very good film", true, 1, 2, -1));
+		assertThat(reviews.get(1)).isEqualTo(new Review(2, "the film is too bad", false, 2, 2, 0));
+	}
+
+	@Test
+	public void getAllReviewsWithFilmId() {
+		List<Review> reviews = reviewDao.getAll(2, 10);
+
+		assertThat(reviews).hasSize(2);
+		assertThat(reviews.get(0)).isEqualTo(new Review(1, "very good film", true, 1, 2, -1));
+		assertThat(reviews.get(1)).isEqualTo(new Review(2, "the film is too bad", false, 2, 2, 0));
+	}
+
+	@Test
+	public void getReviewById() {
+		Review review = reviewDao.getById(1);
+
+		assertThat(review).isNotNull();
+		assertThat(review).hasFieldOrPropertyWithValue("reviewId", 1);
+	}
+
+	@Test
+	public void getReviewByNonExistingId() {
+		assertThatThrownBy(() -> reviewDao.getById(999)).hasMessage("Обзор с id=999 не найден.");
+	}
+
+    @Test
+	public void addReview() {
+		Review review = new Review("bad film", false, 1, 1);
+		Review reviewReturned = reviewDao.save(review);
+		Review reviewFromDb = reviewDao.getById(4);
+
+		assertThat(reviewReturned).isNotNull();
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("reviewId", 4);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("useful", 0);
+		assertThat(reviewFromDb).isNotNull();
+		assertThat(reviewFromDb).isEqualTo(reviewReturned);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("reviewId", 4);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("content", "bad film");
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("isPositive", false);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("filmId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("useful", 0);
+	}
+
+	@Test
+	public void updateReview() {
+		Review updateReview = new Review(1, "not very good film", false, 1, 2, 0);
+		Review reviewReturned = reviewDao.update(updateReview);
+		Review reviewFromDb = reviewDao.getById(1);
+
+		assertThat(reviewReturned).isNotNull();
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("reviewId", 1);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("content", "not very good film");
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("isPositive", false);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("filmId", 2);
+		assertThat(reviewReturned).hasFieldOrPropertyWithValue("useful", -1);
+		assertThat(reviewFromDb).isNotNull();
+		assertThat(reviewFromDb).isEqualTo(reviewReturned);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("reviewId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("content", "not very good film");
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("isPositive", false);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("filmId", 2);
+		assertThat(reviewFromDb).hasFieldOrPropertyWithValue("useful", -1);
+	}
+
+	@Test
+	public void deleteReview() {
+		reviewDao.delete(1);
+		List<Review> reviews = reviewDao.getAll(null, 10);
+
+		assertThatThrownBy(() -> reviewDao.getById(1)).hasMessage("Обзор с id=1 не найден.");
+		assertThat(reviews).hasSize(2);
+	}
+
+	@Test
+	public void addReviewLike() {
+		reviewDao.addLike(2, 3);
+		Review review = reviewDao.getById(2);
+
+		assertThat(review).hasFieldOrPropertyWithValue("reviewId", 2);
+		assertThat(review).hasFieldOrPropertyWithValue("useful", 1);
+	}
+
+	@Test
+	public void addReviewDislike() {
+		reviewDao.addDislike(2, 3);
+		Review review = reviewDao.getById(2);
+
+		assertThat(review).hasFieldOrPropertyWithValue("reviewId", 2);
+		assertThat(review).hasFieldOrPropertyWithValue("useful", -1);
+	}
+
+	@Test
+	public void deleteReviewLikeOrDislike() {
+		reviewDao.deleteLikeOrDislike(1, 2);
+		reviewDao.deleteLikeOrDislike(3, 1);
+		Review review1 = reviewDao.getById(1);
+		Review review3 = reviewDao.getById(3);
+
+		assertThat(review1).hasFieldOrPropertyWithValue("reviewId", 1);
+		assertThat(review1).hasFieldOrPropertyWithValue("useful", 0);
+		assertThat(review3).hasFieldOrPropertyWithValue("reviewId", 3);
+		assertThat(review3).hasFieldOrPropertyWithValue("useful", 1);
+	}
+
+	@Test
+	public void writeEvent() {
+		eventDao.writeEvent(1, EventType.REVIEW, Operation.ADD, 3);
+		List<Event> events = eventDao.getUserEvents(1);
+
+		assertThat(events).hasSize(1);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("eventId", 1);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("eventType", EventType.REVIEW);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("operation", Operation.ADD);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("entityId", 3);
+		assertThat(events.get(0).getTimestamp()).isNotNull();
+	}
+
+	@Test
+	public void getUserEvents() {
+		eventDao.writeEvent(1, EventType.REVIEW, Operation.ADD, 3);
+		eventDao.writeEvent(2, EventType.REVIEW, Operation.ADD, 3);
+		eventDao.writeEvent(1, EventType.FRIEND, Operation.ADD, 2);
+		List<Event> events = eventDao.getUserEvents(1);
+
+		assertThat(events).hasSize(2);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("eventId", 1);
+		assertThat(events.get(1)).hasFieldOrPropertyWithValue("eventId", 3);
 	}
 }
