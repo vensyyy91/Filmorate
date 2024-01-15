@@ -10,6 +10,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.dao.*;
 import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -31,6 +34,7 @@ class FilmorateApplicationTests {
 	private final FriendsDao friendsDao;
 	private final DirectorDao directorDao;
 	private final ReviewDao reviewDao;
+	private final EventDao eventDao;
 	private static final Genre GENRE_COMEDY = new Genre(1, "Комедия");
 	private static final Genre GENRE_DRAMA = new Genre(2, "Драма");
 	private static final Genre GENRE_CARTOON = new Genre(3, "Мультфильм");
@@ -951,5 +955,31 @@ class FilmorateApplicationTests {
 		assertThat(review1).hasFieldOrPropertyWithValue("useful", 0);
 		assertThat(review3).hasFieldOrPropertyWithValue("reviewId", 3);
 		assertThat(review3).hasFieldOrPropertyWithValue("useful", 1);
+	}
+
+	@Test
+	public void writeEvent() {
+		eventDao.writeEvent(1, EventType.REVIEW, Operation.ADD, 3);
+		List<Event> events = eventDao.getUserEvents(1);
+
+		assertThat(events).hasSize(1);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("eventId", 1);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("userId", 1);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("eventType", EventType.REVIEW);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("operation", Operation.ADD);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("entityId", 3);
+		assertThat(events.get(0).getTimestamp()).isNotNull();
+	}
+
+	@Test
+	public void getUserEvents() {
+		eventDao.writeEvent(1, EventType.REVIEW, Operation.ADD, 3);
+		eventDao.writeEvent(2, EventType.REVIEW, Operation.ADD, 3);
+		eventDao.writeEvent(1, EventType.FRIEND, Operation.ADD, 2);
+		List<Event> events = eventDao.getUserEvents(1);
+
+		assertThat(events).hasSize(2);
+		assertThat(events.get(0)).hasFieldOrPropertyWithValue("eventId", 1);
+		assertThat(events.get(1)).hasFieldOrPropertyWithValue("eventId", 3);
 	}
 }

@@ -3,12 +3,11 @@ package ru.yandex.practicum.filmorate.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dao.DirectorDao;
-import ru.yandex.practicum.filmorate.dao.FilmDao;
-import ru.yandex.practicum.filmorate.dao.LikesDao;
-import ru.yandex.practicum.filmorate.dao.UserDao;
+import ru.yandex.practicum.filmorate.dao.*;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.model.event.EventType;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.List;
@@ -21,6 +20,7 @@ public class FilmServiceImpl implements FilmService {
     private final UserDao userDao;
     private final LikesDao likesDao;
     private final DirectorDao directorDao;
+    private final EventDao eventDao;
 
     @Override
     public List<Film> getAllFilms() {
@@ -67,6 +67,7 @@ public class FilmServiceImpl implements FilmService {
         filmDao.getById(id); // проверка наличия фильма
         userDao.getById(userId); // проверка наличия пользователя
         likesDao.save(id, userId);
+        eventDao.writeEvent(userId, EventType.LIKE, Operation.ADD, id);
         log.info("Поставлен лайк фильму с id={} пользователем с id={}", id, userId);
     }
 
@@ -79,6 +80,7 @@ public class FilmServiceImpl implements FilmService {
                     userId, id));
         }
         likesDao.delete(id, userId);
+        eventDao.writeEvent(userId, EventType.LIKE, Operation.REMOVE, id);
         log.info("Удален лайк фильму с id={} пользователем с id={}", id, userId);
     }
 

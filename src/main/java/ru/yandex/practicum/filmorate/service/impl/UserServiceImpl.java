@@ -3,11 +3,14 @@ package ru.yandex.practicum.filmorate.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.EventDao;
 import ru.yandex.practicum.filmorate.dao.FilmDao;
 import ru.yandex.practicum.filmorate.dao.FriendsDao;
 import ru.yandex.practicum.filmorate.dao.UserDao;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.List;
@@ -19,6 +22,7 @@ public class UserServiceImpl implements UserService {
     private final UserDao userDao;
     private final FriendsDao friendsDao;
     private final FilmDao filmDao;
+    private final EventDao eventDao;
 
     @Override
     public List<User> getAllUsers() {
@@ -71,6 +75,7 @@ public class UserServiceImpl implements UserService {
         userDao.getById(userId); // проверка наличия пользователя
         userDao.getById(friendId); // проверка наличия пользователя
         friendsDao.save(userId, friendId);
+        eventDao.writeEvent(userId, EventType.FRIEND, Operation.ADD, friendId);
         log.info(String.format("Пользователь с id=%d добавил в друзья пользователя с id=%d.", userId, friendId));
     }
 
@@ -79,6 +84,7 @@ public class UserServiceImpl implements UserService {
         userDao.getById(userId); // проверка наличия пользователя
         userDao.getById(friendId); // проверка наличия пользователя
         friendsDao.delete(userId, friendId);
+        eventDao.writeEvent(userId, EventType.FRIEND, Operation.REMOVE, friendId);
         log.info(String.format("Пользователь с id=%d удалил из друзей пользователя с id=%d.", userId, friendId));
     }
 
@@ -109,5 +115,12 @@ public class UserServiceImpl implements UserService {
         log.info("Возвращен список рекомендованных фильмов для пользователя с id={}: {}", id, films);
 
         return films;
+    }
+
+    @Override
+    public List<Event> getUserFeed(int id) {
+        userDao.getById(id); // проверка наличия пользователя
+
+        return eventDao.getUserEvents(id);
     }
 }

@@ -2,9 +2,13 @@ package ru.yandex.practicum.filmorate.util;
 
 import ru.yandex.practicum.filmorate.dao.*;
 import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,6 +77,17 @@ public class Mapper {
         int useful = reviewDao.getReviewUsefulRating(id);
 
         return new Review(id, content, isPositive, userId, filmId, useful);
+    }
+
+    public static Event makeEvent(ResultSet rs, int rowNum) throws SQLException {
+        int eventId = rs.getInt("event_id");
+        Instant timestamp = rs.getTimestamp("create_timestamp").toInstant();
+        int userId = rs.getInt("user_id");
+        EventType eventType = EventType.valueOf(rs.getString("event_type"));
+        Operation operation = Operation.valueOf(rs.getString("operation"));
+        int entityId = rs.getInt("entity_id");
+
+        return new Event(eventId, timestamp, userId, eventType, operation, entityId);
     }
 
     public static Map<String,Object> userToMap(User user) {
