@@ -5,7 +5,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.GenreDao;
-import ru.yandex.practicum.filmorate.exception.GenreNotFoundException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.util.Mapper;
 
@@ -30,7 +30,7 @@ public class GenreDaoImpl implements GenreDao {
         try {
             return jdbcTemplate.queryForObject(sql, Mapper::makeGenre, id);
         } catch (EmptyResultDataAccessException ex) {
-            throw new GenreNotFoundException(String.format("Жанр с id=%d не найден.", id));
+            throw new NotFoundException(String.format("Жанр с id=%d не найден.", id));
         }
     }
 

@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dao.*;
-import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
-import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.event.EventType;
 import ru.yandex.practicum.filmorate.model.event.Operation;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -76,7 +76,7 @@ public class FilmServiceImpl implements FilmService {
         filmDao.getById(id); // проверка наличия фильма
         userDao.getById(userId); // проверка наличия пользователя
         if (!likesDao.getAllByFilmId(id).contains(userId)) {
-            throw new UserNotFoundException(String.format("Пользователь с id=%d не ставил лайк фильму с id=%d.",
+            throw new NotFoundException(String.format("Пользователь с id=%d не ставил лайк фильму с id=%d.",
                     userId, id));
         }
         likesDao.delete(id, userId);

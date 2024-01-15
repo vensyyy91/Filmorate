@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.UserDao;
-import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.util.Mapper;
 
@@ -29,7 +29,7 @@ public class UserDaoImpl implements UserDao {
         try {
             return jdbcTemplate.queryForObject(sql, Mapper::makeUser, id);
         } catch (EmptyResultDataAccessException ex) {
-            throw new UserNotFoundException(String.format("Пользователь с id=%d не найден.", id));
+            throw new NotFoundException(String.format("Пользователь с id=%d не найден.", id));
         }
     }
 

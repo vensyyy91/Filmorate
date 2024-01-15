@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.ReviewDao;
-import ru.yandex.practicum.filmorate.exception.ReviewNotFoundException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.util.Mapper;
 
@@ -37,7 +37,7 @@ public class ReviewDaoImpl implements ReviewDao {
         try {
             return jdbcTemplate.queryForObject(sql, this::makeReview, id);
         } catch (EmptyResultDataAccessException ex) {
-            throw new ReviewNotFoundException(String.format("Обзор с id=%d не найден.", id));
+            throw new NotFoundException(String.format("Обзор с id=%d не найден.", id));
         }
     }
 

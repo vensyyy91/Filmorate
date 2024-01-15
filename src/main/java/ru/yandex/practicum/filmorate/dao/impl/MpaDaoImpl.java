@@ -5,7 +5,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.MpaDao;
-import ru.yandex.practicum.filmorate.exception.MpaNotFoundException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.util.Mapper;
 
@@ -28,7 +28,7 @@ public class MpaDaoImpl implements MpaDao {
         try {
             return jdbcTemplate.queryForObject(sql, Mapper::makeMpa, id);
         } catch (EmptyResultDataAccessException ex) {
-            throw new MpaNotFoundException(String.format("Рейтинг с id=%d не найден.", id));
+            throw new NotFoundException(String.format("Рейтинг с id=%d не найден.", id));
         }
     }
 }

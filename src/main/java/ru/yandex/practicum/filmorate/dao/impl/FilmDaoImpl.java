@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.*;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -39,7 +39,7 @@ public class FilmDaoImpl implements FilmDao {
         try {
             return jdbcTemplate.queryForObject(sql, this::makeFilm, id);
         } catch (EmptyResultDataAccessException ex) {
-            throw new FilmNotFoundException(String.format("Фильм с id=%d не найден.", id));
+            throw new NotFoundException(String.format("Фильм с id=%d не найден.", id));
         }
     }
 
