@@ -100,18 +100,10 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     @Override
-    public void deleteLike(int id, int userId) {
+    public void deleteLikeOrDislike(int id, int userId) {
         userDao.getById(userId); // проверка наличия пользователя
         reviewDao.getById(id); // проверка наличия отзыва
         reviewDao.deleteLikeOrDislike(id, userId);
-        log.info("Пользователем с id={} удален лайк отзыву с id={}", userId, id);
-    }
-
-    @Override
-    public void deleteDislike(int id, int userId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        reviewDao.getById(id); // проверка наличия отзыва
-        reviewDao.deleteLikeOrDislike(id, userId);
-        log.info("Пользователем с id={} удален дизлайк отзыву с id={}", userId, id);
+        log.info("Пользователем с id={} удален лайк/дизлайк отзыву с id={}", userId, id);
     }
 }

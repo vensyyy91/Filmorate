@@ -19,7 +19,5 @@ public interface ReviewService {
 
     void addDislike(int id, int userId);
 
-    void deleteLike(int id, int userId);
-
-    void deleteDislike(int id, int userId);
+    void deleteLikeOrDislike(int id, int userId);
 }
