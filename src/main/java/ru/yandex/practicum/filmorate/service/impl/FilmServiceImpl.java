@@ -48,7 +48,7 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public Film updateFilm(Film film) {
-        filmDao.getById(film.getId()); // проверка наличия фильма
+        checkIfFilmExists(film.getId());
         filmDao.save(film);
         log.info("Обновлен фильм: id={}, name={}", film.getId(), film.getName());
 
@@ -57,15 +57,15 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public void deleteFilm(int filmId) {
-        filmDao.getById(filmId); // проверка наличия фильма
+        checkIfFilmExists(filmId);
         filmDao.delete(filmId);
         log.info("Удален фильм с id={}", filmId);
     }
 
     @Override
     public void like(int id, int userId) {
-        filmDao.getById(id); // проверка наличия фильма
-        userDao.getById(userId); // проверка наличия пользователя
+        checkIfFilmExists(id);
+        checkIfUserExists(userId);
         likesDao.save(id, userId);
         eventDao.writeEvent(userId, EventType.LIKE, Operation.ADD, id);
         log.info("Поставлен лайк фильму с id={} пользователем с id={}", id, userId);
@@ -73,8 +73,8 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public void deleteLike(int id, int userId) {
-        filmDao.getById(id); // проверка наличия фильма
-        userDao.getById(userId); // проверка наличия пользователя
+        checkIfFilmExists(id);
+        checkIfUserExists(userId);
         if (!likesDao.getAllByFilmId(id).contains(userId)) {
             throw new NotFoundException(String.format("Пользователь с id=%d не ставил лайк фильму с id=%d.",
                     userId, id));
@@ -94,7 +94,7 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public List<Film> getDirectorFilms(int directorId, String sortBy) {
-        directorDao.getById(directorId); // проверка наличия режиссера
+        checkIfDirectorExists(directorId); // проверка наличия режиссера
         List<Film> films = filmDao.getDirectorFilms(directorId, sortBy);
         log.info("Возвращен список всех фильмов режиссера с id={}: {}", directorId, films);
 
@@ -103,8 +103,8 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public List<Film> getCommonFilms(int userId, int friendId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        userDao.getById(friendId); // проверка наличия пользователя
+        checkIfUserExists(userId);
+        checkIfUserExists(friendId);
         List<Film> films = filmDao.getCommonFilms(userId, friendId);
         log.info("Возвращен список общих фильмов для пользователей с id={} и id={}: {}", userId, friendId, films);
 
@@ -116,5 +116,17 @@ public class FilmServiceImpl implements FilmService {
         List<Film> films = filmDao.search(query, by);
         log.info("Возвращен результат поиска: {}", films);
         return films;
+    }
+
+    private void checkIfFilmExists(int id) {
+        filmDao.getById(id);
+    }
+
+    private void checkIfUserExists(int id) {
+        userDao.getById(id);
+    }
+
+    private void checkIfDirectorExists(int id) {
+        directorDao.getById(id);
     }
 }

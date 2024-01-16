@@ -53,7 +53,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(User user) {
-        userDao.getById(user.getId()); // проверка наличия пользователя
+        checkIfUserExists(user.getId());
         if (user.getName() == null || user.getName().isEmpty()) {
             user.setName(user.getLogin());
         }
@@ -65,15 +65,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(int userId) {
-        userDao.getById(userId); // проверка наличия пользователя
+        checkIfUserExists(userId);
         userDao.delete(userId);
         log.info("Удален пользователь с id={}", userId);
     }
 
     @Override
     public void addFriend(int userId, int friendId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        userDao.getById(friendId); // проверка наличия пользователя
+        checkIfUserExists(userId);
+        checkIfUserExists(friendId);
         friendsDao.save(userId, friendId);
         eventDao.writeEvent(userId, EventType.FRIEND, Operation.ADD, friendId);
         log.info(String.format("Пользователь с id=%d добавил в друзья пользователя с id=%d.", userId, friendId));
@@ -81,8 +81,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteFriend(int userId, int friendId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        userDao.getById(friendId); // проверка наличия пользователя
+        checkIfUserExists(userId);
+        checkIfUserExists(friendId);
         friendsDao.delete(userId, friendId);
         eventDao.writeEvent(userId, EventType.FRIEND, Operation.REMOVE, friendId);
         log.info(String.format("Пользователь с id=%d удалил из друзей пользователя с id=%d.", userId, friendId));
@@ -90,7 +90,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getAllFriends(int userId) {
-        userDao.getById(userId); // проверка наличия пользователя
+        checkIfUserExists(userId);
         List<User> userFriends = friendsDao.getAllById(userId);
         log.info(String.format("Возвращен список всех друзей пользователя с id=%d: %s", userId, userFriends));
 
@@ -99,8 +99,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getCommonFriends(int userId, int otherId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        userDao.getById(otherId); // проверка наличия пользователя
+        checkIfUserExists(userId);
+        checkIfUserExists(otherId);
         List<User> commonFriends = friendsDao.getCommonById(userId, otherId);
         log.info(String.format("Возвращен список всех общих друзей у пользователей с id=%d и id=%d: %s",
                 userId, otherId, commonFriends));
@@ -110,7 +110,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<Film> getRecommendations(int id) {
-        userDao.getById(id); // проверка наличия пользователя
+        checkIfUserExists(id);
         List<Film> films = filmDao.getRecommendations(id);
         log.info("Возвращен список рекомендованных фильмов для пользователя с id={}: {}", id, films);
 
@@ -119,8 +119,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<Event> getUserFeed(int id) {
-        userDao.getById(id); // проверка наличия пользователя
+        checkIfUserExists(id);
 
         return eventDao.getUserEvents(id);
+    }
+
+    private void checkIfUserExists(int id) {
+        userDao.getById(id);
     }
 }

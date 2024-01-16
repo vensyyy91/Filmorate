@@ -27,8 +27,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public Review addReview(Review review) {
-        userDao.getById(review.getUserId()); // проверка наличия пользователя
-        filmDao.getById(review.getFilmId()); // проверка наличия фильма
+        checkIfUserExists(review.getUserId());
+        checkIfFilmExists(review.getFilmId());
         Review newReview = reviewDao.save(review);
         eventDao.writeEvent(newReview.getUserId(), EventType.REVIEW, Operation.ADD, newReview.getReviewId());
         log.info("Добавлен отзыв от пользователя с id={} фильму с id={}: id={}, content={}",
@@ -42,9 +42,9 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public Review updateReview(Review review) {
-        reviewDao.getById(review.getReviewId()); // проверка наличия отзыва
-        userDao.getById(review.getUserId()); // проверка наличия пользователя
-        filmDao.getById(review.getFilmId()); // проверка наличия фильма
+        checkIfReviewExists(review.getReviewId());
+        checkIfUserExists(review.getUserId());
+        checkIfFilmExists(review.getFilmId());
         Review newReview = reviewDao.update(review);
         eventDao.writeEvent(newReview.getUserId(), EventType.REVIEW, Operation.UPDATE, newReview.getReviewId());
         log.info("Обновлен отзыв от пользователя с id={} фильму с id={}: id={}, content={}",
@@ -85,25 +85,37 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void addLike(int id, int userId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        reviewDao.getById(id); // проверка наличия отзыва
+        checkIfUserExists(userId);
+        checkIfReviewExists(id);
         reviewDao.addLike(id, userId);
         log.info("Пользователем с id={} поставлен лайк отзыву с id={}", userId, id);
     }
 
     @Override
     public void addDislike(int id, int userId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        reviewDao.getById(id); // проверка наличия отзыва
+        checkIfUserExists(userId);
+        checkIfReviewExists(id);
         reviewDao.addDislike(id, userId);
         log.info("Пользователем с id={} поставлен дизлайк отзыву с id={}", userId, id);
     }
 
     @Override
     public void deleteLikeOrDislike(int id, int userId) {
-        userDao.getById(userId); // проверка наличия пользователя
-        reviewDao.getById(id); // проверка наличия отзыва
+        checkIfUserExists(userId);
+        checkIfReviewExists(id);
         reviewDao.deleteLikeOrDislike(id, userId);
         log.info("Пользователем с id={} удален лайк/дизлайк отзыву с id={}", userId, id);
+    }
+
+    private void checkIfReviewExists(int id) {
+        reviewDao.getById(id);
+    }
+
+    private void checkIfFilmExists(int id) {
+        filmDao.getById(id);
+    }
+
+    private void checkIfUserExists(int id) {
+        userDao.getById(id);
     }
 }

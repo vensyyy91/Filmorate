@@ -41,7 +41,7 @@ public class DirectorServiceImpl implements DirectorService {
 
     @Override
     public Director updateDirector(Director director) {
-        directorDao.getById(director.getId()); // проверка наличия режиссера
+        checkIfDirectorExists(director.getId());
         directorDao.update(director);
         log.info("Обновлен режиссер: id={}, name={}", director.getId(), director.getName());
 
@@ -50,8 +50,12 @@ public class DirectorServiceImpl implements DirectorService {
 
     @Override
     public void deleteDirector(int id) {
-        directorDao.getById(id); // проверка наличия режиссера
+        checkIfDirectorExists(id);
         directorDao.delete(id);
         log.info("Удален пользователь с id={}", id);
+    }
+
+    private void checkIfDirectorExists(int id) {
+        directorDao.getById(id);
     }
 }
