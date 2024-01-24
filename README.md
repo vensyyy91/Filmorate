@@ -25,8 +25,8 @@
 
 1. Клонируйте репозиторий проекта и перейдите в папку:
 ````
-git clone https://github.com/vensyyy91/ExploreWithMe.git
-cd ExploreWithMe
+git clone https://github.com/vensyyy91/Filmorate.git
+cd Filmorate
 ````
 2. Соберите проект:
 ````
